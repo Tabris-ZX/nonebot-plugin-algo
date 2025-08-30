@@ -1,0 +1,59 @@
+[tool.poetry]
+name = "nonebot-plugin-algo"
+version = "0.1.0"
+description = "NoneBot2 插件：算法比赛与题目信息查询助手"
+authors = ["Tabris_ZX <3146463122@qq.com>"]
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+nonebot2 = {extras = ["console"], version = "^2.4.3"}
+httpx = ">=0.24"
+nonebot-plugin-alconna = ">=0.49.0"
+pydantic = ">=2.4,<3.0"
+nonebot-plugin-apscheduler = "^0.5.0"
+
+[tool.poetry.group.dev.dependencies]
+black = ">=24.4.2"
+isort = ">=5.13.2"
+ruff = ">=0.4.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# ================= 代码质量工具配置 =================
+[tool.black]
+line-length = 90
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 90
+length_sort = true
+skip_gitignore = true
+force_sort_within_sections = true
+extra_standard_library = ["typing_extensions"]
+
+[tool.ruff]
+line-length = 90
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q"]
+ignore = ["C901", "T201", "E731", "E402"]
+
+[tool.pyright]
+pythonVersion = "3.9"
+pythonPlatform = "All"
+typeCheckingMode = "basic"
+
+# ================= NoneBot 配置 =================
+[tool.nonebot]
+adapters = []
+plugin_dirs = []
+builtin_plugins = []
