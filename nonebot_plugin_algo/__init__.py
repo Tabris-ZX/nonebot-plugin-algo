@@ -1,25 +1,34 @@
 from nonebot.plugin import PluginMetadata, get_plugin_config
-from .config import AlgoConfig
+from .config import algo_config, AlgoConfig
 from .query import Query
+from .subscribe import Subscribe
+from nonebot.adapters import Event
 from nonebot_plugin_apscheduler import scheduler
+from nonebot.adapters import Bot, MessageSegment
 from nonebot_plugin_alconna import (
     Alconna,
     Args,
     on_alconna,
 )
+from nonebot.adapters.onebot.v11 import GroupMessageEvent   
 
 __plugin_meta__ = PluginMetadata(
     name="算法比赛助手",
-    description="<your_plugin_description>",
+    description="算法比赛查询和订阅助手",
     usage="""
-    今日比赛:
+    今日比赛: 查询今日比赛
     近期比赛: 查询近期即将进行的比赛
     比赛 ?[平台id] ?[天数=7] : 按条件查询比赛
     题目 [比赛id] : 查询比赛题目
     clt官网: 查询clt官网
-    订阅 [比赛id] : 提醒比赛开始
+    
+    订阅功能:
+    订阅 [比赛id/比赛名称] : 订阅比赛提醒
+    取消订阅 [比赛id] : 取消订阅
+    订阅列表: 查看当前群组订阅
+    清空订阅: 清空所有订阅
 
-    示例: 比赛 163 10 : 查询洛谷平台3天内的比赛
+    示例: 比赛 163 10 : 查询洛谷平台10天内的比赛
     """,
     homepage="https://github.com/Tabris_ZX/nonebot-plugin-algo",
     type="application",
@@ -68,7 +77,7 @@ query_conditions_contest = on_alconna(
 @query_conditions_contest.handle()
 async def handle_match_id_matcher(
     resource_id=None,
-    days: int = AlgoConfig.days,
+    days: int = algo_config.days,
 ):
     """
     查询条件比赛
@@ -116,21 +125,115 @@ async def handle_clist_matcher():
     await clist.finish(msg)
 
 
+# 订阅比赛
 subscribe_contests = on_alconna(
     Alconna(
         "订阅",
         Args["id?", int],
+        Args["event?", str],
     ),
     priority=5,
     block=True,
 )
 
-
-
 @subscribe_contests.handle()
-async def handle_subscribe_matcher(contest_id: int):
+async def handle_subscribe_matcher(
+    event: Event,
+    id=None, #比赛id
+    event_name=None, #比赛名称
+    ):
     """处理订阅命令：将当前用户订阅到指定比赛，并在比赛开始前提醒"""
 
+    
+    # 获取事件对象
+    event_obj = event
+    if not isinstance(event_obj, GroupMessageEvent):
+        await subscribe_contests.finish("订阅功能仅支持群聊使用")
+    
+    group_id = str(event_obj.group_id)
+    
+    success, msg = await Subscribe.subscribe_contest(
+        group_id=group_id,
+        id=str(id) if id else None,
+        event=event_name
+    )
+    
+    await subscribe_contests.finish(msg)
+
+# 取消订阅
+unsubscribe_contests = on_alconna(
+    Alconna(
+        "取消订阅",
+        Args["contest_id", int],
+    ),
+    priority=5,
+    block=True,
+)
+
+@unsubscribe_contests.handle()
+async def handle_unsubscribe_matcher(event: Event, contest_id: int):
+    """取消订阅比赛"""
+    from nonebot.adapters.onebot.v11 import GroupMessageEvent
+    from nonebot.adapters import Event
+        
+    event_obj = event
+    if not isinstance(event_obj, GroupMessageEvent):
+        await unsubscribe_contests.finish("取消订阅功能仅支持群聊使用")
+    
+    group_id = str(event_obj.group_id)
+    
+    success, msg = await Subscribe.unsubscribe_contest(
+        group_id=group_id,
+        contest_id=str(contest_id)
+    )
+    
+    await unsubscribe_contests.finish(msg)
+
+# 查看订阅列表
+list_subscribes = on_alconna(
+    Alconna("订阅列表"),
+    aliases={"/订阅列表"},
+    priority=5,
+    block=True,
+)
+
+@list_subscribes.handle()
+async def handle_list_subscribes(event: Event):
+    """查看当前群组的订阅列表"""
+    from nonebot.adapters.onebot.v11 import GroupMessageEvent
+    from nonebot.adapters import Event
+    
+    event_obj = event
+    if not isinstance(event_obj, GroupMessageEvent):
+        await list_subscribes.finish("查看订阅列表功能仅支持群聊使用")
+    
+    group_id = str(event_obj.group_id)
+    
+    msg = await Subscribe.list_subscribes(group_id)
+    await list_subscribes.finish(msg)
+
+# 清空订阅
+clear_subscribes = on_alconna(
+    Alconna("清空订阅"),
+    aliases={"/清空订阅"},
+    priority=5,
+    block=True,
+)
+
+@clear_subscribes.handle()
+async def handle_clear_subscribes(event: Event):
+    """清空当前群组的所有订阅"""
+    from nonebot.adapters.onebot.v11 import GroupMessageEvent
+    from nonebot.adapters import Event
+    
+    event_obj = event
+    if not isinstance(event_obj, GroupMessageEvent):
+        await clear_subscribes.finish("清空订阅功能仅支持群聊使用")
+    
+    group_id = str(event_obj.group_id)
+    
+    success, msg = await Subscribe.clear_subscribes(group_id)
+    await clear_subscribes.finish(msg)
 
 
 
