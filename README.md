@@ -1,4 +1,10 @@
 <div align="center">
+  <a href="https://v2.nonebot.dev/store"><img src="https://github.com/A-kirami/nonebot-plugin-template/blob/resources/nbp_logo.png" width="180" height="180" alt="NoneBotPluginLogo"></a>
+  <br>
+  <p><img src="https://github.com/A-kirami/nonebot-plugin-template/blob/resources/NoneBotPlugin.svg" width="240" alt="NoneBotPluginText"></p>
+</div>
+
+<div align="center">
 
 <h1 style="font-size: 4em; margin: 20px 0;">算法比赛助手</h1>
 <!-- _✨ 算法比赛与题目信息查询助手 ✨_ -->
