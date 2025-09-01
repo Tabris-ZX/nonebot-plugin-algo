@@ -11,6 +11,19 @@ from .config import algo_config
 class Util:
     
     @staticmethod
+    def utc_to_local(contest: dict) -> datetime:
+        """将UTC时间转换为本地时间datetime对象"""
+        start_time = datetime.fromisoformat(contest["start"]).replace(tzinfo=timezone.utc)
+        local_time = start_time.astimezone()
+        return local_time
+    
+    @staticmethod
+    def utc_to_local_str(contest: dict) -> str:
+        """将UTC时间转换为本地时间字符串"""
+        local_time = Util.utc_to_local(contest)
+        return local_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    @staticmethod
     def _normalize_params(params: dict) -> dict:
         normalized: dict = {}
         for key, value in params.items():
@@ -23,17 +36,18 @@ class Util:
         return normalized
 
     @classmethod
-    def build_contest_params(cls,
+    def build_contest_params(
+        cls,
         days=None, 
         resource_id=None, 
         id=None, 
-        event=None,
-        ) -> dict:
+        event_regex=None,
+    ) -> dict:
         #当前时间
         if days is None:
             base_params = {
                 "id": id,
-                "event": event,
+                "event_regex": event_regex,
                 **algo_config.default_params,
             }
         else:
@@ -49,10 +63,11 @@ class Util:
         return cls._normalize_params(base_params)
 
     @classmethod
-    def build_problem_params(cls,
+    def build_problem_params(
+        cls,
         contest_ids=None, 
         url=None
-        ) -> dict:
+    ) -> dict:
         base_params = {
             **algo_config.default_params,
             "contest_ids": str(contest_ids),
@@ -64,11 +79,12 @@ class Util:
         return cls._normalize_params(base_params)
 
     @classmethod
-    async def get_contest_info(cls,
+    async def get_contest_info(
+        cls,
         id=None, #比赛id
-        event=None #比赛名称
-        ) -> Union[List[Dict], int]:
-        params = cls.build_contest_params(id=id, event=event)
+        event_regex=None #比赛名称
+    ) -> Union[List[Dict], int]:
+        params = cls.build_contest_params(id=id, event_regex=event_regex)
         timeout = httpx.Timeout(10.0)
         for attempt in range(3):
             try:
@@ -93,16 +109,17 @@ class Util:
         return 0
 
     @classmethod
-    async def get_upcoming_contests(cls,
+    async def get_upcoming_contests(
+        cls,
         resource_id=None, #平台id
         id=None, #比赛id
         days:int= algo_config.days #查询天数
-        ) -> Union[List[Dict], int]:
+    ) -> Union[List[Dict], int]:
         params = cls.build_contest_params(
             resource_id=resource_id,
             id=id,
             days=days
-            )
+        )
         timeout = httpx.Timeout(10.0)
 
         for attempt in range(3):
@@ -123,6 +140,7 @@ class Util:
             except httpx.HTTPStatusError as e:
                 if attempt == 2:
                     logger.error(f"比赛获取失败,状态码{e.response.status_code}: {e}")
+                    logger.info(algo_config.clist_username)
                     return e.response.status_code
                 await asyncio.sleep(2 ** attempt)
 
@@ -132,9 +150,10 @@ class Util:
         return 0
 
     @classmethod
-    async def get_problems_by_contest(cls,
-        contest_ids: int #比赛id
-        ) -> Union[List[Dict], int]: #比赛id
+    async def get_problems_by_contest(
+        cls,
+        contest_ids: int  # 比赛id
+    ) -> Union[List[Dict], int]:  # 比赛id
         params = cls.build_problem_params(contest_ids)
         timeout = httpx.Timeout(10.0)
         for attempt in range(3):
@@ -165,10 +184,11 @@ class Util:
         return 0
 
     @classmethod
-    async def get_problems_info(cls,
+    async def get_problems_info(
+        cls,
         contest_ids=None,
         url=None
-        ) -> Union[List[Dict], int]:
+    ) -> Union[List[Dict], int]:
         """条件查询题目信息
         
         Args:

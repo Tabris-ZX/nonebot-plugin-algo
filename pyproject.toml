@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-algo"
-version = "0.1.3"
+version = "0.1.9"
 description = "NoneBot2 插件：算法比赛与题目信息查询助手"
 authors = ["Tabris_ZX <3146463122@qq.com>"]
 readme = "README.md"
@@ -55,7 +55,7 @@ typeCheckingMode = "basic"
 
 # ================= NoneBot 配置 =================
 [tool.nonebot]
-adapters = ["onebot.v11"]  
+adapters = ["~onebot.v11"]  
 plugin_dirs = []
 builtin_plugins = []
 

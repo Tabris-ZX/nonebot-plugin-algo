@@ -1,16 +1,13 @@
 import json
 import os
-# from nonebot.adapters import MessageSegment, Bot
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime
 from typing import Dict, List, Optional
-
-import tzlocal
 from nonebot.log import logger
-from nonebot_plugin_apscheduler import scheduler
+from nonebot import require
+scheduler = require("nonebot_plugin_apscheduler")
 
 from .config import algo_config
 from .util import Util
-
 
 class Subscribe:
     # 订阅数据文件路径
@@ -41,16 +38,23 @@ class Subscribe:
         except Exception as e:
             logger.error(f"保存订阅数据失败: {e}")
     
-    def add_subscribe(self, group_id: Optional[str], contest_id: str, event: str, start_time: str):
+    def add_subscribe(
+        self, 
+        group_id: str, 
+        contest_id: str, 
+        event: str, 
+        start_time: str, 
+        user_id: Optional[str] = None, 
+        href: Optional[str] = None
+    ):
         """添加订阅"""
-        # 私聊时使用 "private" 作为标识
-        storage_key = group_id if group_id else "private"
-        
-        if storage_key not in self.subscribes:
-            self.subscribes[storage_key] = []
+        # 对于私聊场景，使用用户ID作为键
+        key = user_id if group_id == "null" else group_id
+        if key not in self.subscribes:
+            self.subscribes[key] = [] #type: ignore
         
         # 检查是否已订阅
-        for sub in self.subscribes[storage_key]:
+        for sub in self.subscribes[key]: #type: ignore
             if sub.get('contest_id') == contest_id:
                 return False, "该比赛已订阅"
         
@@ -58,37 +62,56 @@ class Subscribe:
             'contest_id': contest_id,
             'event': event,
             'start_time': start_time,
-            'subscribe_time': datetime.now().isoformat()
+            'subscribe_time': datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            'user_id': user_id,
+            'group_id': group_id,
+            'remind_time': (datetime.fromisoformat(start_time) - timedelta(minutes=algo_config.remind_pre)).strftime("%Y-%m-%dT%H:%M:%S"),
+            'href': href
         }
         
-        self.subscribes[storage_key].append(subscribe_info)
+        self.subscribes[key].append(subscribe_info) #type: ignore
         self._save_subscribes()
         return True, "订阅成功"
     
-    def remove_subscribe(self, group_id: Optional[str], contest_id: str) -> bool:
+    def remove_subscribe(
+        self, 
+        group_id: str, 
+        contest_id: str, 
+        user_id: Optional[str] = None
+    ) -> bool:
         """取消订阅"""
-        storage_key = group_id if group_id else "private"
-        
-        if storage_key not in self.subscribes:
+        # 对于私聊场景，使用用户ID作为键
+        key = user_id if group_id == "null" else group_id
+        if key not in self.subscribes:
             return False
         
-        for i, sub in enumerate(self.subscribes[storage_key]):
+        for i, sub in enumerate(self.subscribes[key]):
             if sub.get('contest_id') == contest_id:
-                del self.subscribes[storage_key][i]
+                del self.subscribes[key][i]
                 self._save_subscribes()
                 return True
         return False
     
-    def get_group_subscribes(self, group_id: Optional[str]) -> List[Dict]:
-        """获取群组订阅列表"""
-        storage_key = group_id if group_id else "private"
-        return self.subscribes.get(storage_key, [])
+    def get_group_subscribes(
+        self, 
+        group_id: str, 
+        user_id: Optional[str] = None
+    ) -> List[Dict]:
+        """获取订阅列表"""
+        # 对于私聊场景，使用用户ID作为键
+        key = user_id if group_id == "null" else group_id
+        return self.subscribes.get(key, []) #type: ignore
     
-    def clear_group_subscribes(self, group_id: Optional[str]) -> bool:
-        """清空群组所有订阅"""
-        storage_key = group_id if group_id else "private"
-        if storage_key in self.subscribes:
-            del self.subscribes[storage_key]
+    def clear_group_subscribes(
+        self, 
+        group_id: str, 
+        user_id: Optional[str] = None
+    ) -> bool:
+        """清空所有订阅"""
+        # 对于私聊场景，使用用户ID作为键
+        key = user_id if group_id == "null" else group_id
+        if key in self.subscribes:
+            del self.subscribes[key]
             self._save_subscribes()
             return True
         return False
@@ -98,12 +121,8 @@ class Subscribe:
         """发送比赛提醒"""
         logger.info(f"比赛提醒: {contest_info['event']}")
         
-        # 解析时间并转换为本地时间
-        try:
-            start_time = datetime.fromisoformat(contest_info['start_time'].replace('Z', '+00:00'))
-            local_time = start_time.astimezone().strftime("%Y-%m-%d %H:%M")
-        except:
-            local_time = contest_info['start_time']
+        # 获取本地时间
+        local_time = contest_info.get('start_time', '未知时间')
         
         # 构建提醒消息
         message = f"🔔比赛提醒\n\n"
@@ -116,39 +135,55 @@ class Subscribe:
             from nonebot import get_bot
             bot = get_bot()
             
-            # 根据订阅类型发送消息
-            if contest_info.get("is_private", False):
-                # 私聊订阅，发送私聊消息
-                await bot.send_private_msg(
-                    user_id=contest_info["user_id"],
-                    message=message
-                )
-            else:
-                # 群聊订阅，发送群聊消息
+            # 根据是否有群组ID决定发送方式
+            if contest_info.get("group_id") and contest_info.get("group_id") != "null":
                 await bot.send_group_msg(
                     group_id=contest_info["group_id"],
                     message=message
                 )
+            elif contest_info.get("user_id"):
+                await bot.send_private_msg(
+                    user_id=contest_info["user_id"],
+                    message=message
+                )
+            
+            # 发送成功后，清理已过期的订阅
+            await cls.cleanup_expired_subscriptions()
+            
         except Exception as e:
             logger.error(f"发送比赛提醒失败: {e}")
 
     @classmethod
-    async def subscribe_contest(cls,
-     group_id: Optional[str],
-     id: Optional[str] = None,  # 比赛id
-     event: Optional[str] = None,  # 比赛名称
-     user_id: Optional[str] = None  # 用户ID（私聊时使用）
-     ) -> tuple[bool, str]:
+    async def subscribe_contest(
+        cls,
+        group_id: str,
+        id: Optional[str] = None,  # 比赛id
+        event_regex: Optional[str] = None,  # 比赛名称
+        user_id: Optional[str] = None  # 用户id
+    ) -> tuple[bool, str]:
         """订阅比赛"""
-        if id is None and event is None:
+        if id is None and event_regex is None:
             return False, "请提供比赛ID或比赛名称"
         
         try:
-            contest_info = await Util.get_contest_info(id=id, event=event)
+            contest_info = await Util.get_contest_info(id=id, event_regex=event_regex)
             if isinstance(contest_info, int) or contest_info is None or not contest_info:
                 return False, "未找到相关比赛"
             
-            contest = contest_info[0]  # 取第一个匹配的比赛
+            # 遍历所有匹配的比赛，找到第一个未来的比赛
+            contest = None
+            for c in contest_info:
+                local_start_time = Util.utc_to_local(c)
+                if local_start_time.tzinfo is None:
+                    current_time = datetime.now()
+                else:
+                    current_time = datetime.now(local_start_time.tzinfo)
+                if local_start_time > current_time:
+                    contest = c
+                    break
+            
+            if contest is None:
+                return False, f"未找到{algo_config.remind_pre}分钟后的比赛，无法订阅"
             
             # 创建订阅实例
             subscribe_manager = Subscribe()
@@ -158,66 +193,65 @@ class Subscribe:
                 group_id=group_id,
                 contest_id=str(contest['id']),
                 event=contest['event'],
-                start_time=contest['start']
+                start_time=contest['start'],
+                user_id=user_id,
+                href=contest.get('href')
             )
             
             if not success:
                 return False, msg
             
             # 设置定时提醒
-            local_tz = tzlocal.get_localzone()  # 获取本地时区
-
-            start_time = datetime.fromisoformat(contest['start']).replace(tzinfo=timezone.utc).astimezone(local_tz)
-            remind_time = start_time - timedelta(minutes=algo_config.remind_pre)
+            remind_time = local_start_time - timedelta(minutes=algo_config.remind_pre)
             
-            # 检查是否已经过了提醒时间
-            if remind_time <= datetime.now(start_time.tzinfo):
-                return False, "比赛开始时间已过或即将开始，无法订阅"
+            # 检查提醒时间是否已经过了
+            if remind_time.tzinfo is None: #type: ignore
+                # 如果remind_time没有时区信息，使用本地时区
+                current_time = datetime.now()
+            else:
+                current_time = datetime.now(remind_time.tzinfo) #type: ignore
+            
+            if remind_time <= current_time: #type: ignore
+                return False, "比赛即将开始，无法订阅"
             
             # 添加定时任务
-            storage_key = group_id if group_id else "private"
-            job_id = f"contest_reminder_{storage_key}_{contest['id']}"
-            
-            # 构建提醒信息
-            reminder_info = {
-                'event': contest['event'],
-                'start_time': contest['start'],
-                'href': contest.get('href', ''),
-                'is_private': group_id is None
-            }
-            
-            if group_id:
-                reminder_info['group_id'] = group_id
-            else:
-                # 私聊时使用传入的用户ID
-                reminder_info['user_id'] = user_id if user_id else "default_user"
-            
+            job_id = f"contest_reminder_{user_id if group_id == 'null' else group_id}_{contest['id']}"
             scheduler.add_job(
                 func=cls.send_contest_reminder,
-                args=(reminder_info,),
+                args=({
+                    'group_id': group_id,
+                    'user_id': user_id,
+                    'event': contest['event'],
+                    'start_time': local_start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'href': contest.get('href', '')
+                },),
                 trigger="date",
                 run_date=remind_time,
                 id=job_id,
                 replace_existing=True
             )
             
-            return True, f"订阅成功！比赛：{contest['event']}，将在 {remind_time.strftime('%Y-%m-%d %H:%M')} 提醒"
+            return True, f"订阅成功！比赛：{contest['event']}，将在 {remind_time.strftime('%Y-%m-%d %H:%M')} 提醒" #type: ignore
             
         except Exception as e:
             logger.exception(f"订阅比赛失败: {e}")
             return False, f"订阅失败：{str(e)}"
     
     @classmethod
-    async def unsubscribe_contest(cls, group_id: Optional[str], contest_id: str) -> tuple[bool, str]:
+    async def unsubscribe_contest(
+        cls, 
+        group_id: str, 
+        contest_id: str, 
+        user_id: Optional[str] = None
+    ) -> tuple[bool, str]:
         """取消订阅比赛"""
         try:
             subscribe_manager = Subscribe()
             
             # 取消订阅
-            if subscribe_manager.remove_subscribe(group_id, contest_id):
+            if subscribe_manager.remove_subscribe(group_id, contest_id, user_id):
                 # 删除定时任务
-                storage_key = group_id if group_id else "private"
-                job_id = f"contest_reminder_{storage_key}_{contest_id}"
+                job_id = f"contest_reminder_{user_id if group_id == 'null' else group_id}_{contest_id}"
                 try:
                     scheduler.remove_job(job_id)
                 except:
@@ -231,11 +265,15 @@ class Subscribe:
             return False, f"取消订阅失败：{str(e)}"
     
     @classmethod
-    async def list_subscribes(cls, group_id: Optional[str]) -> str:
-        """列出群组订阅"""
+    async def list_subscribes(
+        cls, 
+        group_id: str, 
+        user_id: Optional[str] = None
+    ) -> str:
+        """列出订阅"""
         try:
             subscribe_manager = Subscribe()
-            subscribes = subscribe_manager.get_group_subscribes(group_id)
+            subscribes = subscribe_manager.get_group_subscribes(group_id, user_id)
             
             if not subscribes:
                 return "当前暂无订阅"
@@ -244,15 +282,13 @@ class Subscribe:
             for sub in subscribes:
                 # 解析开始时间并转换为本地时间
                 try:
-                    start_time = datetime.fromisoformat(sub['start_time'].replace('Z', '+00:00'))
-                    local_time = start_time.astimezone().strftime("%Y-%m-%d %H:%M")
+                    local_time = Util.utc_to_local_str(sub)
                 except:
                     local_time = sub['start_time']
                 
                 # 解析订阅时间
                 try:
-                    subscribe_time = datetime.fromisoformat(sub['subscribe_time'].replace('Z', '+00:00'))
-                    subscribe_local_time = subscribe_time.astimezone().strftime("%Y-%m-%d %H:%M")
+                    subscribe_local_time = datetime.fromisoformat(sub['subscribe_time']).strftime("%Y-%m-%dT%H:%M:%S")
                 except:
                     subscribe_local_time = sub['subscribe_time']
                 
@@ -260,7 +296,8 @@ class Subscribe:
                     f"🏆比赛名称: {sub['event']}\n"
                     f"⏰比赛时间: {local_time}\n"
                     f"📌比赛ID: {sub['contest_id']}\n"
-                    f"📅订阅时间: {subscribe_local_time}"
+                    f"📅订阅时间: {subscribe_local_time}\n"
+                    f"🔗比赛链接: {sub.get('href', '无链接')}"
                 )
             
             logger.info(f"返回 {len(msg_list)} 个订阅信息")
@@ -271,25 +308,28 @@ class Subscribe:
             return f"获取订阅列表失败：{str(e)}"
     
     @classmethod
-    async def clear_subscribes(cls, group_id: Optional[str]) -> tuple[bool, str]:
-        """清空群组所有订阅"""
+    async def clear_subscribes(
+        cls, 
+        group_id: str, 
+        user_id: Optional[str] = None
+    ) -> tuple[bool, str]:
+        """清空所有订阅"""
         try:
             subscribe_manager = Subscribe()
             
             # 获取当前订阅
-            subscribes = subscribe_manager.get_group_subscribes(group_id)
+            subscribes = subscribe_manager.get_group_subscribes(group_id, user_id)
             
             # 删除所有定时任务
-            storage_key = group_id if group_id else "private"
             for sub in subscribes:
-                job_id = f"contest_reminder_{storage_key}_{sub['contest_id']}"
+                job_id = f"contest_reminder_{user_id if group_id == 'null' else group_id}_{sub['contest_id']}"
                 try:
                     scheduler.remove_job(job_id)
                 except:
                     pass
             
             # 清空订阅
-            if subscribe_manager.clear_group_subscribes(group_id):
+            if subscribe_manager.clear_group_subscribes(group_id, user_id):
                 return True, f"已清空 {len(subscribes)} 个订阅"
             else:
                 return False, "当前暂无订阅"
@@ -297,4 +337,104 @@ class Subscribe:
         except Exception as e:
             logger.exception(f"清空订阅失败: {e}")
             return False, f"清空订阅失败：{str(e)}"
+
+    @classmethod
+    async def restore_scheduled_jobs(cls):
+        """恢复所有定时任务"""
+        try:
+            subscribe_manager = Subscribe()
+            restored_count = 0
+            
+            # 遍历所有订阅
+            for key, subscribes in subscribe_manager.subscribes.items():
+                for sub in subscribes:
+                    try:
+                        # 解析提醒时间
+                        remind_time = datetime.fromisoformat(sub['remind_time'])
+                        
+                        # 检查是否已经过了提醒时间
+                        if remind_time.tzinfo is None:
+                            now = datetime.now()
+                        else:
+                            now = datetime.now(remind_time.tzinfo)
+                        if remind_time <= now:
+                            logger.info(f"跳过已过期的定时任务: {sub['event']}")
+                            continue
+                        
+                        # 重新创建定时任务
+                        job_id = f"contest_reminder_{key}_{sub['contest_id']}"
+                        scheduler.add_job(
+                            func=cls.send_contest_reminder,
+                            args=({
+                                'group_id': sub.get('group_id'),
+                                'user_id': sub.get('user_id'),
+                                'event': sub['event'],
+                                'start_time': sub['start_time'],
+                                'href': sub.get('href', '')
+                            },),
+                            trigger="date",
+                            run_date=remind_time,
+                            id=job_id,
+                            replace_existing=True
+                        )
+                        restored_count += 1
+                        logger.info(f"恢复定时任务: {sub['event']} -> {remind_time}")
+                        
+                    except Exception as e:
+                        logger.error(f"恢复定时任务失败 {sub.get('event', 'unknown')}: {e}")
+                        continue
+            
+            logger.info(f"成功恢复 {restored_count} 个定时任务")
+            return restored_count
+            
+        except Exception as e:
+            logger.exception(f"恢复定时任务失败: {e}")
+            return 0
+
+    @classmethod
+    async def cleanup_expired_subscriptions(cls):
+        """清理已过期的订阅"""
+        try:
+            subscribe_manager = Subscribe()
+            cleaned_count = 0
+            
+            # 遍历所有订阅
+            for key, subscribes in list(subscribe_manager.subscribes.items()):
+                # 使用列表副本进行迭代，以便在迭代过程中删除元素
+                for sub in list(subscribes):
+                    try:
+                        # 解析比赛开始时间
+                        start_time = datetime.fromisoformat(sub['start_time'])
+                        
+                        # 检查比赛是否已经结束（假设比赛持续2小时）
+                        end_time = start_time + timedelta(hours=2)
+                        if start_time.tzinfo is None:
+                            now = datetime.now()
+                        else:
+                            now = datetime.now(start_time.tzinfo)
+                        
+                        if end_time < now:
+                            # 比赛已结束，删除订阅
+                            subscribes.remove(sub)
+                            cleaned_count += 1
+                            logger.info(f"清理过期订阅: {sub['event']}")
+                            
+                    except Exception as e:
+                        logger.error(f"清理订阅时出错 {sub.get('event', 'unknown')}: {e}")
+                        continue
+                
+                # 如果该键下没有订阅了，删除整个键
+                if not subscribes:
+                    del subscribe_manager.subscribes[key]
+            
+            # 保存更改
+            if cleaned_count > 0:
+                subscribe_manager._save_subscribes()
+                logger.info(f"清理了 {cleaned_count} 个过期订阅")
+            
+            return cleaned_count
+            
+        except Exception as e:
+            logger.exception(f"清理过期订阅失败: {e}")
+            return 0
 

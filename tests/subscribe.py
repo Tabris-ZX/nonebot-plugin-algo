@@ -39,7 +39,15 @@ class Subscribe:
         except Exception as e:
             logger.error(f"保存订阅数据失败: {e}")
     
-    def add_subscribe(self, group_id: str, contest_id: str, event: str, start_time: str):
+    def add_subscribe(
+        self, 
+        group_id: str, 
+        contest_id: str, 
+        event: str, 
+        start_time: str, 
+        user_id: Optional[str] = None, 
+        href: Optional[str] = None
+    ):
         """添加订阅"""
         if group_id not in self.subscribes:
             self.subscribes[group_id] = []
@@ -53,7 +61,8 @@ class Subscribe:
             'contest_id': contest_id,
             'event': event,
             'start_time': start_time,
-            'subscribe_time': datetime.now().isoformat()
+            'subscribe_time': datetime.now().isoformat(),
+            'href': href
         }
         
         self.subscribes[group_id].append(subscribe_info)
@@ -138,7 +147,8 @@ class Subscribe:
                 group_id=group_id,
                 contest_id=str(contest['id']),
                 event=contest['event'],
-                start_time=contest['start']
+                start_time=contest['start'],
+                href=contest.get('href')
             )
             
             if not success:
@@ -228,7 +238,8 @@ class Subscribe:
                     f"🏆比赛名称: {sub['event']}\n"
                     f"⏰比赛时间: {local_time}\n"
                     f"📌比赛ID: {sub['contest_id']}\n"
-                    f"📅订阅时间: {subscribe_local_time}"
+                    f"📅订阅时间: {subscribe_local_time}\n"
+                    f"🔗比赛链接: {sub.get('href', '无链接')}"
                 )
             
             logger.info(f"返回群组 {len(msg_list)} 个订阅信息")
