@@ -10,7 +10,7 @@ _✨ 算法比赛与题目信息查询助手 ✨_
   <a href="https://pypi.python.org/pypi/nonebot-plugin-algo">
     <img src="https://img.shields.io/pypi/v/nonebot-plugin-algo.svg" alt="pypi">
   </a>
-  <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="python">
+  <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="python">
 
 </div>
 
