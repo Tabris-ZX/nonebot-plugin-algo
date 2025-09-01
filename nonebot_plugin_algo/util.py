@@ -4,11 +4,9 @@ import httpx
 
 from nonebot.log import logger
 from typing import List, Dict, Union
-from .config import AlgoConfig
-from nonebot.plugin import get_plugin_config
+from .config import algo_config
 
-algo_config = get_plugin_config(AlgoConfig)
-
+    
 class Util:
     
     @staticmethod
@@ -28,11 +26,13 @@ class Util:
         days=None, 
         resource_id=None, 
         id=None, 
+        event=None,
         ) -> dict:
         #当前时间
         if days is None:
             base_params = {
                 "id": id,
+                "event": event,
                 **algo_config.default_params,
             }
         else:
@@ -44,8 +44,6 @@ class Util:
                 **algo_config.default_params,
                 **{"resource_id": resource_id},
             }
-        #构建比赛开始的最晚时间
-        #构建参数
         base_params = {k: v for k, v in base_params.items() if v is not None}
         return cls._normalize_params(base_params)
 
@@ -66,9 +64,10 @@ class Util:
 
     @classmethod
     async def get_contest_info(cls,
-        id: int #比赛id
+        id=None, #比赛id
+        event=None #比赛名称
         ) -> Union[List[Dict], int]:
-        params = cls.build_contest_params(id=id)
+        params = cls.build_contest_params(id=id, event=event)
         timeout = httpx.Timeout(10.0)
         for attempt in range(3):
             try:

@@ -1,11 +1,8 @@
-from datetime import datetime
+from datetime import datetime,timezone
 
 from nonebot.log import logger
 from .util import Util
-from .config import AlgoConfig
-from nonebot.plugin import get_plugin_config
-
-algo_config = get_plugin_config(AlgoConfig)
+from .config import algo_config
 
 class Query:
 
@@ -19,7 +16,7 @@ class Query:
             return "今天没有比赛安排哦~"
         msg_list = []
         for contest in today_contest:
-            start_time = datetime.fromisoformat(contest["start"])
+            start_time = datetime.fromisoformat(contest["start"]).replace(tzinfo=timezone.utc)
             local_time = start_time.astimezone().strftime("%Y-%m-%d %H:%M")
 
             msg_list.append(
@@ -30,7 +27,7 @@ class Query:
             )
 
         logger.info(f"返回今日 {len(msg_list)} 场比赛信息")
-        return f"今日有{len(msg_list)}场比赛安排：\n\n" + "\n\n".join(msg_list)
+        return f"今日有{len(msg_list)}场比赛安排(test)：\n\n" + "\n\n".join(msg_list)
 
     @classmethod
     async def ans_recent_contests(cls) -> str:
@@ -49,7 +46,7 @@ class Query:
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
 
-        logger.info(f"返回近期 {len(msg_list)} 场比赛信息")
+        logger.info(f"返回近期 {len(msg_list)} 场比赛信息(test)")
         return f"近期有{len(msg_list)}场比赛安排：\n\n" + "\n\n".join(msg_list)
 
     @classmethod
