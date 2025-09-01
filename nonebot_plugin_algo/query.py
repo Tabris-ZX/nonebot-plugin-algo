@@ -20,7 +20,7 @@ class Query:
 
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"
+                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"   #将utc时间转换为本地时间
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
@@ -38,7 +38,7 @@ class Query:
         for contest in recent_contest:
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"
+                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"   #将utc时间转换为本地时间
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )

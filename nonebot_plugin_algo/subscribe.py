@@ -62,10 +62,10 @@ class Subscribe:
             'contest_id': contest_id,
             'event': event,
             'start_time': start_time,
-            'subscribe_time': datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+            'subscribe_time': datetime.now().strftime("%Y-%m-%d %H:%M"),
             'user_id': user_id,
             'group_id': group_id,
-            'remind_time': (datetime.fromisoformat(start_time) - timedelta(minutes=algo_config.remind_pre)).strftime("%Y-%m-%dT%H:%M:%S"),
+            'remind_time': (datetime.fromisoformat(start_time) - timedelta(minutes=algo_config.remind_pre)).strftime("%Y-%m-%d %H:%M"),
             'href': href
         }
         
@@ -158,15 +158,15 @@ class Subscribe:
         cls,
         group_id: str,
         id: Optional[str] = None,  # 比赛id
-        event_regex: Optional[str] = None,  # 比赛名称
+        event__regex: Optional[str] = None,  # 比赛名称
         user_id: Optional[str] = None  # 用户id
     ) -> tuple[bool, str]:
         """订阅比赛"""
-        if id is None and event_regex is None:
+        if id is None and event__regex is None:
             return False, "请提供比赛ID或比赛名称"
         
         try:
-            contest_info = await Util.get_contest_info(id=id, event_regex=event_regex)
+            contest_info = await Util.get_contest_info(id=id, event__regex=event__regex)
             if isinstance(contest_info, int) or contest_info is None or not contest_info:
                 return False, "未找到相关比赛"
             
@@ -222,7 +222,7 @@ class Subscribe:
                     'group_id': group_id,
                     'user_id': user_id,
                     'event': contest['event'],
-                    'start_time': local_start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                    'start_time': local_start_time.strftime("%Y-%m-%d %H:%M"),
                     'href': contest.get('href', '')
                 },),
                 trigger="date",
@@ -288,13 +288,13 @@ class Subscribe:
                 
                 # 解析订阅时间
                 try:
-                    subscribe_local_time = datetime.fromisoformat(sub['subscribe_time']).strftime("%Y-%m-%dT%H:%M:%S")
+                    subscribe_local_time = datetime.fromisoformat(sub['subscribe_time']).strftime("%Y-%m-%d %H:%M")
                 except:
                     subscribe_local_time = sub['subscribe_time']
                 
                 msg_list.append(
                     f"🏆比赛名称: {sub['event']}\n"
-                    f"⏰比赛时间: {local_time}\n"
+                    f"⏰比赛时间: {local_time}\n"   #将utc时间转换为本地时间
                     f"📌比赛ID: {sub['contest_id']}\n"
                     f"📅订阅时间: {subscribe_local_time}\n"
                     f"🔗比赛链接: {sub.get('href', '无链接')}"

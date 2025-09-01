@@ -129,7 +129,7 @@ subscribe_contests = on_alconna(
     Alconna(
         "订阅",
         Option("i", Args["id?", int]),
-        Option("e", Args["event_regex?", str]),
+        Option("e", Args["event__regex?", str]),
     ),
     priority=5,
     block=True,
@@ -139,7 +139,7 @@ subscribe_contests = on_alconna(
 async def handle_subscribe_matcher(
     event: Event,
     id=None, #比赛id
-    event_regex=None, #比赛名称
+    event__regex=None, #比赛名称
     ):
     """处理订阅命令：将当前用户订阅到指定比赛，并在比赛开始前提醒"""
 
@@ -161,7 +161,7 @@ async def handle_subscribe_matcher(
     success, msg = await Subscribe.subscribe_contest(
         group_id=group_id,  # type: ignore
         id=str(id) if id else None,
-        event_regex=event_regex,
+        event__regex=event__regex, 
         user_id=user_id
     )
     

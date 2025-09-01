@@ -9,8 +9,8 @@ load_dotenv()
 # 配置模型
 class AlgoConfig(BaseModel):
     # 使用 .env 中的环境变量或者默认值
-    clist_username: str = os.getenv("algo_clist_username", "tabris")
-    clist_api_key: str = os.getenv("algo_clist_api_key", "b8e38d0599c24dcda14f1671e8fd0ff484920686")
+    clist_username: str = os.getenv("algo_clist_username", "")
+    clist_api_key: str = os.getenv("algo_clist_api_key", "")
     # 查询天数
     days: int = int(os.getenv("algo_days", 7))
     # 查询结果数量限制

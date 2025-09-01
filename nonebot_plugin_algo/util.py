@@ -21,7 +21,7 @@ class Util:
     def utc_to_local_str(contest: dict) -> str:
         """将UTC时间转换为本地时间字符串"""
         local_time = Util.utc_to_local(contest)
-        return local_time.strftime("%Y-%m-%dT%H:%M:%S")
+        return local_time.strftime("%Y-%m-%d %H:%M")
 
     @staticmethod
     def _normalize_params(params: dict) -> dict:
@@ -41,13 +41,13 @@ class Util:
         days=None, 
         resource_id=None, 
         id=None, 
-        event_regex=None,
+        event__regex=None,
     ) -> dict:
         #当前时间
         if days is None:
             base_params = {
                 "id": id,
-                "event_regex": event_regex,
+                "event__regex": event__regex,
                 **algo_config.default_params,
             }
         else:
@@ -82,9 +82,9 @@ class Util:
     async def get_contest_info(
         cls,
         id=None, #比赛id
-        event_regex=None #比赛名称
+        event__regex=None #比赛名称
     ) -> Union[List[Dict], int]:
-        params = cls.build_contest_params(id=id, event_regex=event_regex)
+        params = cls.build_contest_params(id=id, event__regex=event__regex)
         timeout = httpx.Timeout(10.0)
         for attempt in range(3):
             try:
