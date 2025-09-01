@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 
 from nonebot.log import logger
 
@@ -18,12 +17,10 @@ class Query:
             return "今天没有比赛安排哦~"
         msg_list = []
         for contest in today_contest:
-            start_time = datetime.fromisoformat(contest["start"]).replace(tzinfo=timezone.utc)
-            local_time = start_time.astimezone().strftime("%Y-%m-%d %H:%M")
 
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {local_time}\n"
+                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
@@ -39,11 +36,9 @@ class Query:
             return f"比赛获取失败,状态码{recent_contest}"
         msg_list = []
         for contest in recent_contest:
-            start_time = datetime.fromisoformat(contest["start"])
-            local_time = start_time.astimezone().strftime("%Y-%m-%d %H:%M")
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {local_time}\n"
+                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
@@ -52,24 +47,23 @@ class Query:
         return f"近期有{len(msg_list)}场比赛安排：\n\n" + "\n\n".join(msg_list)
 
     @classmethod
-    async def ans_conditions_contest(cls,
+    async def ans_conditions_contest(
+        cls,
         resource_id=None,
         days:int= algo_config.days
-        ) -> str:
+    ) -> str:
         """条件查询比赛信息"""
         conditions_contest = await Util.get_upcoming_contests(
             resource_id=resource_id,
             days=days
-            )
+        )
         if isinstance(conditions_contest, int):
             return f"比赛获取失败,状态码{conditions_contest}"
         msg_list = []
         for contest in conditions_contest:
-            start_time = datetime.fromisoformat(contest["start"])
-            local_time = start_time.astimezone().strftime("%Y-%m-%d %H:%M")
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {local_time}\n"
+                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
