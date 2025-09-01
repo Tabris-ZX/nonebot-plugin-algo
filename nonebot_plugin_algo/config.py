@@ -1,6 +1,6 @@
 import os
 from pydantic import BaseModel
-from nonebot import get_driver, get_plugin_config, require
+from nonebot import get_plugin_config, require
 from dotenv import load_dotenv  # 用于加载 .env 文件
 
 # 加载 .env 文件

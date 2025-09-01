@@ -1,14 +1,16 @@
-from nonebot_plugin_apscheduler import scheduler
-from nonebot.log import logger
-# from nonebot.adapters import MessageSegment, Bot
-from datetime import timedelta, datetime,timezone
-import tzlocal
 import json
 import os
+# from nonebot.adapters import MessageSegment, Bot
+from datetime import timedelta, datetime, timezone
 from typing import Dict, List, Optional
 
-from .util import Util
+import tzlocal
+from nonebot.log import logger
+from nonebot_plugin_apscheduler import scheduler
+
 from .config import algo_config
+from .util import Util
+
 
 class Subscribe:
     # 订阅数据文件路径
@@ -39,13 +41,16 @@ class Subscribe:
         except Exception as e:
             logger.error(f"保存订阅数据失败: {e}")
     
-    def add_subscribe(self, group_id: str, contest_id: str, event: str, start_time: str):
+    def add_subscribe(self, group_id: Optional[str], contest_id: str, event: str, start_time: str):
         """添加订阅"""
-        if group_id not in self.subscribes:
-            self.subscribes[group_id] = []
+        # 私聊时使用 "private" 作为标识
+        storage_key = group_id if group_id else "private"
+        
+        if storage_key not in self.subscribes:
+            self.subscribes[storage_key] = []
         
         # 检查是否已订阅
-        for sub in self.subscribes[group_id]:
+        for sub in self.subscribes[storage_key]:
             if sub.get('contest_id') == contest_id:
                 return False, "该比赛已订阅"
         
@@ -56,30 +61,34 @@ class Subscribe:
             'subscribe_time': datetime.now().isoformat()
         }
         
-        self.subscribes[group_id].append(subscribe_info)
+        self.subscribes[storage_key].append(subscribe_info)
         self._save_subscribes()
         return True, "订阅成功"
     
-    def remove_subscribe(self, group_id: str, contest_id: str) -> bool:
+    def remove_subscribe(self, group_id: Optional[str], contest_id: str) -> bool:
         """取消订阅"""
-        if group_id not in self.subscribes:
+        storage_key = group_id if group_id else "private"
+        
+        if storage_key not in self.subscribes:
             return False
         
-        for i, sub in enumerate(self.subscribes[group_id]):
+        for i, sub in enumerate(self.subscribes[storage_key]):
             if sub.get('contest_id') == contest_id:
-                del self.subscribes[group_id][i]
+                del self.subscribes[storage_key][i]
                 self._save_subscribes()
                 return True
         return False
     
-    def get_group_subscribes(self, group_id: str) -> List[Dict]:
+    def get_group_subscribes(self, group_id: Optional[str]) -> List[Dict]:
         """获取群组订阅列表"""
-        return self.subscribes.get(group_id, [])
+        storage_key = group_id if group_id else "private"
+        return self.subscribes.get(storage_key, [])
     
-    def clear_group_subscribes(self, group_id: str) -> bool:
+    def clear_group_subscribes(self, group_id: Optional[str]) -> bool:
         """清空群组所有订阅"""
-        if group_id in self.subscribes:
-            del self.subscribes[group_id]
+        storage_key = group_id if group_id else "private"
+        if storage_key in self.subscribes:
+            del self.subscribes[storage_key]
             self._save_subscribes()
             return True
         return False
@@ -106,18 +115,29 @@ class Subscribe:
             # 使用 Bot 发送消息
             from nonebot import get_bot
             bot = get_bot()
-            await bot.send_group_msg(
-                group_id=contest_info["group_id"],
-                message=message
-            )
+            
+            # 根据订阅类型发送消息
+            if contest_info.get("is_private", False):
+                # 私聊订阅，发送私聊消息
+                await bot.send_private_msg(
+                    user_id=contest_info["user_id"],
+                    message=message
+                )
+            else:
+                # 群聊订阅，发送群聊消息
+                await bot.send_group_msg(
+                    group_id=contest_info["group_id"],
+                    message=message
+                )
         except Exception as e:
             logger.error(f"发送比赛提醒失败: {e}")
 
     @classmethod
     async def subscribe_contest(cls,
-     group_id: str,
+     group_id: Optional[str],
      id: Optional[str] = None,  # 比赛id
-     event: Optional[str] = None  # 比赛名称
+     event: Optional[str] = None,  # 比赛名称
+     user_id: Optional[str] = None  # 用户ID（私聊时使用）
      ) -> tuple[bool, str]:
         """订阅比赛"""
         if id is None and event is None:
@@ -155,15 +175,26 @@ class Subscribe:
                 return False, "比赛开始时间已过或即将开始，无法订阅"
             
             # 添加定时任务
-            job_id = f"contest_reminder_{group_id}_{contest['id']}"
+            storage_key = group_id if group_id else "private"
+            job_id = f"contest_reminder_{storage_key}_{contest['id']}"
+            
+            # 构建提醒信息
+            reminder_info = {
+                'event': contest['event'],
+                'start_time': contest['start'],
+                'href': contest.get('href', ''),
+                'is_private': group_id is None
+            }
+            
+            if group_id:
+                reminder_info['group_id'] = group_id
+            else:
+                # 私聊时使用传入的用户ID
+                reminder_info['user_id'] = user_id if user_id else "default_user"
+            
             scheduler.add_job(
                 func=cls.send_contest_reminder,
-                args=({
-                    'group_id': group_id,
-                    'event': contest['event'],
-                    'start_time': contest['start'],
-                    'href': contest.get('href', '')
-                },),
+                args=(reminder_info,),
                 trigger="date",
                 run_date=remind_time,
                 id=job_id,
@@ -177,7 +208,7 @@ class Subscribe:
             return False, f"订阅失败：{str(e)}"
     
     @classmethod
-    async def unsubscribe_contest(cls, group_id: str, contest_id: str) -> tuple[bool, str]:
+    async def unsubscribe_contest(cls, group_id: Optional[str], contest_id: str) -> tuple[bool, str]:
         """取消订阅比赛"""
         try:
             subscribe_manager = Subscribe()
@@ -185,7 +216,8 @@ class Subscribe:
             # 取消订阅
             if subscribe_manager.remove_subscribe(group_id, contest_id):
                 # 删除定时任务
-                job_id = f"contest_reminder_{group_id}_{contest_id}"
+                storage_key = group_id if group_id else "private"
+                job_id = f"contest_reminder_{storage_key}_{contest_id}"
                 try:
                     scheduler.remove_job(job_id)
                 except:
@@ -199,14 +231,14 @@ class Subscribe:
             return False, f"取消订阅失败：{str(e)}"
     
     @classmethod
-    async def list_subscribes(cls, group_id: str) -> str:
+    async def list_subscribes(cls, group_id: Optional[str]) -> str:
         """列出群组订阅"""
         try:
             subscribe_manager = Subscribe()
             subscribes = subscribe_manager.get_group_subscribes(group_id)
             
             if not subscribes:
-                return "当前群组暂无订阅"
+                return "当前暂无订阅"
             
             msg_list = []
             for sub in subscribes:
@@ -231,15 +263,15 @@ class Subscribe:
                     f"📅订阅时间: {subscribe_local_time}"
                 )
             
-            logger.info(f"返回群组 {len(msg_list)} 个订阅信息")
-            return f"当前群组有{len(msg_list)}个订阅：\n\n" + "\n\n".join(msg_list)
+            logger.info(f"返回 {len(msg_list)} 个订阅信息")
+            return f"当前有{len(msg_list)}个订阅：\n\n" + "\n\n".join(msg_list)
             
         except Exception as e:
             logger.exception(f"获取订阅列表失败: {e}")
             return f"获取订阅列表失败：{str(e)}"
     
     @classmethod
-    async def clear_subscribes(cls, group_id: str) -> tuple[bool, str]:
+    async def clear_subscribes(cls, group_id: Optional[str]) -> tuple[bool, str]:
         """清空群组所有订阅"""
         try:
             subscribe_manager = Subscribe()
@@ -248,8 +280,9 @@ class Subscribe:
             subscribes = subscribe_manager.get_group_subscribes(group_id)
             
             # 删除所有定时任务
+            storage_key = group_id if group_id else "private"
             for sub in subscribes:
-                job_id = f"contest_reminder_{group_id}_{sub['contest_id']}"
+                job_id = f"contest_reminder_{storage_key}_{sub['contest_id']}"
                 try:
                     scheduler.remove_job(job_id)
                 except:
@@ -259,7 +292,7 @@ class Subscribe:
             if subscribe_manager.clear_group_subscribes(group_id):
                 return True, f"已清空 {len(subscribes)} 个订阅"
             else:
-                return False, "当前群组暂无订阅"
+                return False, "当前暂无订阅"
                 
         except Exception as e:
             logger.exception(f"清空订阅失败: {e}")

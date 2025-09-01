@@ -1,8 +1,10 @@
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 
 from nonebot.log import logger
-from .util import Util
+
 from .config import algo_config
+from .util import Util
+
 
 class Query:
 
