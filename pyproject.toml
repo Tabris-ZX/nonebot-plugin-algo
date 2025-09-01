@@ -7,7 +7,7 @@ readme = "README.md"
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.10,<4.0"
 nonebot2 = {extras = ["console"], version = "^2.4.3"}
 httpx = ">=0.24"
 nonebot-plugin-alconna = ">=0.49.0"
@@ -26,7 +26,7 @@ build-backend = "poetry.core.masonry.api"
 # ================= 代码质量工具配置 =================
 [tool.black]
 line-length = 90
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py310", "py311", "py312"]
 include = '\.pyi?$'
 extend-exclude = '''
 '''
@@ -41,14 +41,14 @@ extra_standard_library = ["typing_extensions"]
 
 [tool.ruff]
 line-length = 90
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "UP", "C", "T", "PYI", "PT", "Q"]
 ignore = ["C901", "T201", "E731", "E402"]
 
 [tool.pyright]
-pythonVersion = "3.9"
+pythonVersion = "3.10"
 pythonPlatform = "All"
 typeCheckingMode = "basic"
 
