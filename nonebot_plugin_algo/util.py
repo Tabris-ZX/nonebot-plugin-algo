@@ -7,21 +7,20 @@ from nonebot.log import logger
 
 from .config import algo_config
 
-
 class Util:
     
     @staticmethod
-    def utc_to_local(contest: dict) -> datetime:
+    def utc_to_local(time: str) -> datetime:
         """将UTC时间转换为本地时间datetime对象"""
-        start_time = datetime.fromisoformat(contest["start"]).replace(tzinfo=timezone.utc)
+        start_time = datetime.fromisoformat(time).replace(tzinfo=timezone.utc)
         local_time = start_time.astimezone()
         return local_time
     
-    @staticmethod
-    def utc_to_local_str(contest: dict) -> str:
-        """将UTC时间转换为本地时间字符串"""
-        local_time = Util.utc_to_local(contest)
-        return local_time.strftime("%Y-%m-%d %H:%M")
+    # @staticmethod
+    # def utc_to_local_str(time: str) -> str:
+    #     """将UTC时间转换为本地时间字符串"""
+    #     local_time = Util.utc_to_local(time)
+    #     return local_time.strftime("%Y-%m-%d %H:%M")
 
     @staticmethod
     def _normalize_params(params: dict) -> dict:
@@ -51,7 +50,7 @@ class Util:
                 **algo_config.default_params,
             }
         else:
-            now_start = datetime.now(timezone.utc)
+            now_start = datetime.now().astimezone(timezone.utc)
             last_start = (now_start + timedelta(days=days)).replace(hour=0, minute=0, second=0)
             base_params = {
                 "start__gte": now_start.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -72,7 +71,7 @@ class Util:
             **algo_config.default_params,
             "contest_ids": str(contest_ids),
             "order_by": "rating",
-            "limit": algo_config.limit,
+            "limit": algo_config.algo_limit,
             "url": url,
         }
         base_params = {k: v for k, v in base_params.items() if v is not None}
@@ -113,7 +112,7 @@ class Util:
         cls,
         resource_id=None, #平台id
         id=None, #比赛id
-        days:int= algo_config.days #查询天数
+        days:int= algo_config.algo_days #查询天数
     ) -> Union[List[Dict], int]:
         params = cls.build_contest_params(
             resource_id=resource_id,
@@ -140,7 +139,6 @@ class Util:
             except httpx.HTTPStatusError as e:
                 if attempt == 2:
                     logger.error(f"比赛获取失败,状态码{e.response.status_code}: {e}")
-                    logger.info(algo_config.clist_username)
                     return e.response.status_code
                 await asyncio.sleep(2 ** attempt)
 

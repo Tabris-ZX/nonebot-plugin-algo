@@ -20,13 +20,13 @@ class Query:
 
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"   #将utc时间转换为本地时间
+                f"⏰比赛时间: {Util.utc_to_local(contest['start']).strftime('%Y-%m-%d %H:%M')}\n"   #将utc时间转换为本地时间
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
 
         logger.info(f"返回今日 {len(msg_list)} 场比赛信息")
-        return f"今日有{len(msg_list)}场比赛安排(test)：\n\n" + "\n\n".join(msg_list)
+        return f"今日有{len(msg_list)}场比赛安排(algo)：\n\n" + "\n\n".join(msg_list)
 
     @classmethod
     async def ans_recent_contests(cls) -> str:
@@ -38,19 +38,19 @@ class Query:
         for contest in recent_contest:
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"   #将utc时间转换为本地时间
+                f"⏰比赛时间: {Util.utc_to_local(contest['start']).strftime('%Y-%m-%d %H:%M')}\n"   #将utc时间转换为本地时间
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )
 
-        logger.info(f"返回近期 {len(msg_list)} 场比赛信息(test)")
+        logger.info(f"返回近期 {len(msg_list)} 场比赛信息")
         return f"近期有{len(msg_list)}场比赛安排：\n\n" + "\n\n".join(msg_list)
 
     @classmethod
     async def ans_conditions_contest(
         cls,
         resource_id=None,
-        days:int= algo_config.days
+        days:int= algo_config.algo_days
     ) -> str:
         """条件查询比赛信息"""
         conditions_contest = await Util.get_upcoming_contests(
@@ -63,7 +63,7 @@ class Query:
         for contest in conditions_contest:
             msg_list.append(
                 f"🏆比赛名称: {contest['event']}\n"
-                f"⏰比赛时间: {Util.utc_to_local_str(contest)}\n"
+                f"⏰比赛时间: {Util.utc_to_local(contest['start']).strftime('%Y-%m-%d %H:%M')}\n"
                 f"📌比赛ID: {contest['id']}\n"
                 f"🔗比赛链接: {contest.get('href', '无链接')}"
             )

@@ -4,14 +4,14 @@ from datetime import timedelta, datetime
 from typing import Dict, List, Optional
 from nonebot.log import logger
 from nonebot import require
-scheduler = require("nonebot_plugin_apscheduler")
-
+require("nonebot_plugin_apscheduler")
+from nonebot_plugin_apscheduler import scheduler
 from .config import algo_config
 from .util import Util
 
 class Subscribe:
     # 订阅数据文件路径
-    save_path = algo_config.save_path
+    save_path = algo_config.algo_save_path
     def __init__(self):
         self._ensure_data_dir()
         self.subscribes = self._load_subscribes()
@@ -43,7 +43,7 @@ class Subscribe:
         group_id: str, 
         contest_id: str, 
         event: str, 
-        start_time: str, 
+        start_time: datetime, 
         user_id: Optional[str] = None, 
         href: Optional[str] = None
     ):
@@ -61,11 +61,11 @@ class Subscribe:
         subscribe_info = {
             'contest_id': contest_id,
             'event': event,
-            'start_time': start_time,
+            'start_time': start_time.strftime("%Y-%m-%d %H:%M"),
             'subscribe_time': datetime.now().strftime("%Y-%m-%d %H:%M"),
             'user_id': user_id,
             'group_id': group_id,
-            'remind_time': (datetime.fromisoformat(start_time) - timedelta(minutes=algo_config.remind_pre)).strftime("%Y-%m-%d %H:%M"),
+            'remind_time': (start_time - timedelta(minutes=algo_config.algo_remind_pre)).strftime("%Y-%m-%d %H:%M"),
             'href': href
         }
         
@@ -122,7 +122,7 @@ class Subscribe:
         logger.info(f"比赛提醒: {contest_info['event']}")
         
         # 获取本地时间
-        local_time = contest_info.get('start_time', '未知时间')
+        local_time = datetime.fromisoformat(contest_info['start_time']).strftime('%Y-%m-%d %H:%M')
         
         # 构建提醒消息
         message = f"🔔比赛提醒\n\n"
@@ -173,7 +173,7 @@ class Subscribe:
             # 遍历所有匹配的比赛，找到第一个未来的比赛
             contest = None
             for c in contest_info:
-                local_start_time = Util.utc_to_local(c)
+                local_start_time = Util.utc_to_local(c['start'])
                 if local_start_time.tzinfo is None:
                     current_time = datetime.now()
                 else:
@@ -183,7 +183,7 @@ class Subscribe:
                     break
             
             if contest is None:
-                return False, f"未找到{algo_config.remind_pre}分钟后的比赛，无法订阅"
+                return False, f"未找到{algo_config.algo_remind_pre}分钟后的比赛，无法订阅"
             
             # 创建订阅实例
             subscribe_manager = Subscribe()
@@ -193,7 +193,7 @@ class Subscribe:
                 group_id=group_id,
                 contest_id=str(contest['id']),
                 event=contest['event'],
-                start_time=contest['start'],
+                start_time=Util.utc_to_local(contest['start']),
                 user_id=user_id,
                 href=contest.get('href')
             )
@@ -202,7 +202,7 @@ class Subscribe:
                 return False, msg
             
             # 设置定时提醒
-            remind_time = local_start_time - timedelta(minutes=algo_config.remind_pre)
+            remind_time = local_start_time - timedelta(minutes=algo_config.algo_remind_pre)
             
             # 检查提醒时间是否已经过了
             if remind_time.tzinfo is None: #type: ignore
@@ -222,7 +222,7 @@ class Subscribe:
                     'group_id': group_id,
                     'user_id': user_id,
                     'event': contest['event'],
-                    'start_time': local_start_time.strftime("%Y-%m-%d %H:%M"),
+                    'start_time': Util.utc_to_local(contest['start']),
                     'href': contest.get('href', '')
                 },),
                 trigger="date",
@@ -281,22 +281,15 @@ class Subscribe:
             msg_list = []
             for sub in subscribes:
                 # 解析开始时间并转换为本地时间
-                try:
-                    local_time = Util.utc_to_local_str(sub)
-                except:
-                    local_time = sub['start_time']
-                
+                start_time = datetime.fromisoformat(sub['start_time']).strftime('%Y-%m-%d %H:%M')
                 # 解析订阅时间
-                try:
-                    subscribe_local_time = datetime.fromisoformat(sub['subscribe_time']).strftime("%Y-%m-%d %H:%M")
-                except:
-                    subscribe_local_time = sub['subscribe_time']
-                
+                subscribe_time = datetime.fromisoformat(sub['subscribe_time']).strftime('%Y-%m-%d %H:%M')
+            
                 msg_list.append(
                     f"🏆比赛名称: {sub['event']}\n"
-                    f"⏰比赛时间: {local_time}\n"   #将utc时间转换为本地时间
+                    f"⏰比赛时间: {start_time}\n"  
                     f"📌比赛ID: {sub['contest_id']}\n"
-                    f"📅订阅时间: {subscribe_local_time}\n"
+                    f"📅订阅时间: {subscribe_time}\n"
                     f"🔗比赛链接: {sub.get('href', '无链接')}"
                 )
             
@@ -369,7 +362,7 @@ class Subscribe:
                                 'group_id': sub.get('group_id'),
                                 'user_id': sub.get('user_id'),
                                 'event': sub['event'],
-                                'start_time': sub['start_time'],
+                                'start_time': datetime.fromisoformat(sub['start_time']).strftime('%Y-%m-%d %H:%M'),
                                 'href': sub.get('href', '')
                             },),
                             trigger="date",

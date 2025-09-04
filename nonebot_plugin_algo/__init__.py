@@ -10,6 +10,7 @@ from nonebot.plugin import PluginMetadata
 from .config import algo_config, AlgoConfig
 from .query import Query
 from .subscribe import Subscribe
+from nonebot.log import logger
 
 __plugin_meta__ = PluginMetadata(
     name="算法比赛助手",
@@ -76,7 +77,7 @@ query_conditions_contest = on_alconna(
 @query_conditions_contest.handle()
 async def handle_match_id_matcher(
     resource_id=None,
-    days: int = algo_config.days,
+    days: int = algo_config.algo_days,
 ):
     """
     查询条件比赛
@@ -271,11 +272,9 @@ async def handle_clear_subscribes(event: Event):
 async def restore_scheduled_jobs():
     """Bot启动时恢复所有定时任务"""
     try:
-        from nonebot.log import logger
         restored_count = await Subscribe.restore_scheduled_jobs()
         logger.info(f"算法比赛助手启动完成，恢复了 {restored_count} 个定时任务")
     except Exception as e:
-        from nonebot.log import logger
         logger.error(f"恢复定时任务失败: {e}")
 
 
