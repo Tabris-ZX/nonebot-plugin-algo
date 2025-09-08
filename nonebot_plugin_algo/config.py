@@ -1,6 +1,7 @@
-
+from pathlib import Path
 from pydantic import BaseModel
 from nonebot import get_plugin_config
+import nonebot_plugin_localstore as store
 
 # 配置模型
 class AlgoConfig(BaseModel):
@@ -16,8 +17,7 @@ class AlgoConfig(BaseModel):
     # 排序字段
     algo_order_by: str = "start"
     # 保存路径
-    algo_save_path: str = "data/algo/subscribes.json"
-
+    algo_save_path: Path = store.get_plugin_data_dir() / "subscribes.json"
     @property
     def default_params(self) -> dict:
         return {
@@ -28,4 +28,5 @@ class AlgoConfig(BaseModel):
         }
 
 # 获取插件配置
+
 algo_config:AlgoConfig = get_plugin_config(AlgoConfig)

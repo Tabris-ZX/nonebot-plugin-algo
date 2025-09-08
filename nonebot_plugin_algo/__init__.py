@@ -1,16 +1,15 @@
 from nonebot import require,get_driver
-alc_plugin = require("nonebot_plugin_alconna")
-Alconna = alc_plugin.Alconna
-Args = alc_plugin.Args
-on_alconna = alc_plugin.on_alconna
-Option = alc_plugin.Option
+require("nonebot_plugin_alconna")
+from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna
 from nonebot.adapters import Event
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
 from nonebot.plugin import PluginMetadata
+from nonebot.log import logger
+
 from .config import algo_config, AlgoConfig
 from .query import Query
 from .subscribe import Subscribe
-from nonebot.log import logger
+
 
 __plugin_meta__ = PluginMetadata(
     name="算法比赛助手",
@@ -23,7 +22,7 @@ __plugin_meta__ = PluginMetadata(
     clt官网: 查询clt官网
     
     订阅功能:
-    订阅 ?-i [比赛id] ?-e [比赛名称] : 订阅比赛提醒
+    订阅 ?i [比赛id] ?e [比赛名称] : 订阅比赛提醒
     取消订阅 [比赛id] : 取消订阅
     订阅列表: 查看当前订阅
     清空订阅: 清空所有订阅

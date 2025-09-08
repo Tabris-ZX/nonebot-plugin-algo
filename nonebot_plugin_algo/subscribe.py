@@ -6,6 +6,7 @@ from nonebot.log import logger
 from nonebot import require
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
+
 from .config import algo_config
 from .util import Util
 
@@ -48,6 +49,8 @@ class Subscribe:
         href: Optional[str] = None
     ):
         """添加订阅"""
+
+        print(algo_config.algo_save_path)
         # 对于私聊场景，使用用户ID作为键
         key = user_id if group_id == "null" else group_id
         if key not in self.subscribes:
@@ -202,7 +205,7 @@ class Subscribe:
                 return False, msg
             
             # 设置定时提醒
-            remind_time = local_start_time - timedelta(minutes=algo_config.algo_remind_pre)
+            remind_time = local_start_time - timedelta(minutes=algo_config.algo_remind_pre) #type: ignore
             
             # 检查提醒时间是否已经过了
             if remind_time.tzinfo is None: #type: ignore

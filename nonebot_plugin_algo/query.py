@@ -4,7 +4,6 @@ from nonebot.log import logger
 from .config import algo_config
 from .util import Util
 
-
 class Query:
 
     @classmethod
