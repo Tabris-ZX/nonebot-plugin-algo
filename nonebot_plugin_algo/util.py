@@ -16,11 +16,29 @@ class Util:
         local_time = start_time.astimezone()
         return local_time
     
-    # @staticmethod
-    # def utc_to_local_str(time: str) -> str:
-    #     """将UTC时间转换为本地时间字符串"""
-    #     local_time = Util.utc_to_local(time)
-    #     return local_time.strftime("%Y-%m-%d %H:%M")
+    @staticmethod
+    async def _make_request(url: str, params: dict) -> Union[List[Dict], int]:
+        """统一的HTTP请求方法"""
+        timeout = httpx.Timeout(10.0)
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.get(url, params=params)
+                    response.raise_for_status()
+                    return response.json().get("objects", [])
+            except httpx.ReadTimeout:
+                wait_time = min(2 ** attempt, 5)
+                logger.warning(f"[Attempt {attempt + 1}/3] Timeout, retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            except httpx.HTTPStatusError as e:
+                if attempt == 2:
+                    logger.error(f"请求失败,状态码{e.response.status_code}: {e}")
+                    return e.response.status_code
+                await asyncio.sleep(2 ** attempt)
+            except Exception as e:
+                logger.exception(f"请求失败,发生异常: {e}")
+                return 0
+        return 0
 
     @staticmethod
     def _normalize_params(params: dict) -> dict:
@@ -84,28 +102,7 @@ class Util:
         event__regex=None #比赛名称
     ) -> Union[List[Dict], int]:
         params = cls.build_contest_params(id=id, event__regex=event__regex)
-        timeout = httpx.Timeout(10.0)
-        for attempt in range(3):
-            try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.get("https://clist.by/api/v4/contest/", params=params)
-                    response.raise_for_status()
-                    return response.json().get("objects", [])
-            except httpx.ReadTimeout:
-                wait_time = min(2 ** attempt, 5)
-                logger.warning(f"[Attempt {attempt + 1}/3] Timeout, retrying in {wait_time}s...")
-                await asyncio.sleep(wait_time)
-
-            except httpx.HTTPStatusError as e:
-                if attempt == 2:
-                    logger.error(f"比赛获取失败,状态码{e.response.status_code}: {e}")
-                    return e.response.status_code
-                await asyncio.sleep(2 ** attempt)
-
-            except Exception as e:
-                logger.exception(f"比赛获取失败,发生异常: {e}")
-                return 0
-        return 0
+        return await cls._make_request("https://clist.by/api/v4/contest/", params)
 
     @classmethod
     async def get_upcoming_contests(
@@ -114,72 +111,16 @@ class Util:
         id=None, #比赛id
         days:int= algo_config.algo_days #查询天数
     ) -> Union[List[Dict], int]:
-        params = cls.build_contest_params(
-            resource_id=resource_id,
-            id=id,
-            days=days
-        )
-        timeout = httpx.Timeout(10.0)
-
-        for attempt in range(3):
-            try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.get(
-                        "https://clist.by/api/v4/contest/",
-                        params=params,
-                    )
-                    response.raise_for_status()
-                    return response.json().get("objects", [])
-
-            except httpx.ReadTimeout:
-                wait_time = min(2 ** attempt, 5)
-                logger.warning(f"[Attempt {attempt + 1}/3] Timeout, retrying in {wait_time}s...")
-                await asyncio.sleep(wait_time)
-
-            except httpx.HTTPStatusError as e:
-                if attempt == 2:
-                    logger.error(f"比赛获取失败,状态码{e.response.status_code}: {e}")
-                    return e.response.status_code
-                await asyncio.sleep(2 ** attempt)
-
-            except Exception as e:
-                logger.exception(f"比赛获取失败,发生异常: {e}")
-                return 0
-        return 0
+        params = cls.build_contest_params(resource_id=resource_id, id=id, days=days)
+        return await cls._make_request("https://clist.by/api/v4/contest/", params)
 
     @classmethod
     async def get_problems_by_contest(
         cls,
         contest_ids: int  # 比赛id
-    ) -> Union[List[Dict], int]:  # 比赛id
+    ) -> Union[List[Dict], int]:
         params = cls.build_problem_params(contest_ids)
-        timeout = httpx.Timeout(10.0)
-        for attempt in range(3):
-            try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.get(
-                        "https://clist.by/api/v4/problem/",
-                        params=params,
-                    )
-                    response.raise_for_status()
-                    return response.json().get("objects", [])
-
-            except httpx.ReadTimeout:
-                wait_time = min(2 ** attempt, 5)
-                logger.warning(f"[Attempt {attempt + 1}/3] Timeout, retrying in {wait_time}s...")
-                await asyncio.sleep(wait_time)
-
-            except httpx.HTTPStatusError as e:
-                if attempt == 2:
-                    logger.error(f"题目获取失败,状态码{e.response.status_code}:{e}")
-                    return e.response.status_code
-                await asyncio.sleep(2 ** attempt)
-
-            except Exception as e:
-                logger.exception(f"题目获取失败,发生异常:{e}")
-                return 0
-
-        return 0
+        return await cls._make_request("https://clist.by/api/v4/problem/", params)
 
     @classmethod
     async def get_problems_info(
@@ -193,32 +134,7 @@ class Util:
             contest_ids: 比赛id
             url: 题目链接
         Returns:
-            str: 题目信息
+            List[Dict] | int: 题目信息列表或错误状态码
         """
-        parmas = cls.build_problem_params(contest_ids, url)
-        timeout = httpx.Timeout(10.0)
-        for attempt in range(3):
-            try:
-                async with httpx.AsyncClient(timeout=timeout) as client:
-                    response = await client.get(
-                        "https://clist.by/api/v4/problem/",
-                        params=parmas,
-                    )
-                    response.raise_for_status()
-                    return response.json().get("objects", [])
-
-            except httpx.ReadTimeout:
-                wait_time = min(2 ** attempt, 5)
-                logger.warning(f"[Attempt {attempt + 1}/3] Timeout, retrying in {wait_time}s...")
-                await asyncio.sleep(wait_time)
-
-            except httpx.HTTPStatusError as e:  
-                if attempt == 2:
-                    logger.error(f"题目获取失败,状态码{e.response.status_code}:{e}")
-                    return e.response.status_code
-                await asyncio.sleep(2 ** attempt)
-
-            except Exception as e:
-                logger.exception(f"题目获取失败,发生异常:{e}")
-                return 0
-        return 0
+        params = cls.build_problem_params(contest_ids, url)
+        return await cls._make_request("https://clist.by/api/v4/problem/", params)

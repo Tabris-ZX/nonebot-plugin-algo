@@ -1,5 +1,7 @@
 from nonebot import require,get_driver
 require("nonebot_plugin_alconna")
+require("nonebot_plugin_localstore")
+require("nonebot_plugin_apscheduler")
 from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna
 from nonebot.adapters import Event
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
@@ -9,6 +11,16 @@ from nonebot.log import logger
 from .config import algo_config, AlgoConfig
 from .query import Query
 from .subscribe import Subscribe
+
+
+def parse_event_info(event: Event) -> tuple[str, str]:
+    """解析事件信息，返回group_id和user_id"""
+    if isinstance(event, GroupMessageEvent):
+        return str(event.group_id), str(event.user_id)
+    elif isinstance(event, PrivateMessageEvent):
+        return "null", str(event.user_id)
+    else:
+        raise ValueError("不支持的聊天类型")
 
 
 __plugin_meta__ = PluginMetadata(
@@ -22,7 +34,7 @@ __plugin_meta__ = PluginMetadata(
     clt官网: 查询clt官网
     
     订阅功能:
-    订阅 ?i [比赛id] ?e [比赛名称] : 订阅比赛提醒
+    订阅 ?-i [比赛id] ?-e [比赛名称] : 订阅比赛提醒(名称订阅暂时不支持含空格)
     取消订阅 [比赛id] : 取消订阅
     订阅列表: 查看当前订阅
     清空订阅: 清空所有订阅
@@ -128,8 +140,8 @@ async def handle_clist_matcher():
 subscribe_contests = on_alconna(
     Alconna(
         "订阅",
-        Option("i", Args["id?", int]),
-        Option("e", Args["event__regex?", str]),
+        Option("-i", Args["id?", int]),
+        Option("-e", Args["event__regex?", str]),
     ),
     priority=5,
     block=True,
@@ -142,30 +154,17 @@ async def handle_subscribe_matcher(
     event__regex=None, #比赛名称
     ):
     """处理订阅命令：将当前用户订阅到指定比赛，并在比赛开始前提醒"""
-
-    
-    # 获取事件对象
-    event_obj = event
-    group_id = None
-    user_id = None
-    
-    if isinstance(event_obj, GroupMessageEvent):
-        group_id = str(event_obj.group_id)
-        user_id = str(event_obj.user_id)
-    elif isinstance(event_obj, PrivateMessageEvent):
-        group_id = "null" 
-        user_id = str(event_obj.user_id)
-    else:
-        await subscribe_contests.finish("不支持的聊天类型")
-    
-    success, msg = await Subscribe.subscribe_contest(
-        group_id=group_id,  # type: ignore
-        id=str(id) if id else None,
-        event__regex=event__regex, 
-        user_id=user_id
-    )
-    
-    await subscribe_contests.finish(msg)
+    try:
+        group_id, user_id = parse_event_info(event)
+        success, msg = await Subscribe.subscribe_contest(
+            group_id=group_id,
+            id=str(id) if id else None,
+            event__regex=event__regex, 
+            user_id=user_id
+        )
+        await subscribe_contests.finish(msg)
+    except ValueError as e:
+        await subscribe_contests.finish(str(e))
 
 # 取消订阅
 unsubscribe_contests = on_alconna(
@@ -180,29 +179,16 @@ unsubscribe_contests = on_alconna(
 @unsubscribe_contests.handle()
 async def handle_unsubscribe_matcher(event: Event, contest_id: int):
     """取消订阅比赛"""
-    from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
-    from nonebot.adapters import Event
-        
-    event_obj = event
-    group_id = None
-    user_id = None
-    
-    if isinstance(event_obj, GroupMessageEvent):
-        group_id = str(event_obj.group_id)
-        user_id = str(event_obj.user_id)
-    elif isinstance(event_obj, PrivateMessageEvent):
-        group_id = "null"  # 私聊时群组ID为null字符串
-        user_id = str(event_obj.user_id)
-    else:
-        await unsubscribe_contests.finish("不支持的聊天类型")
-    
-    success, msg = await Subscribe.unsubscribe_contest(
-        group_id=group_id,  # type: ignore
-        contest_id=str(contest_id),
-        user_id=user_id
-    )
-    
-    await unsubscribe_contests.finish(msg)
+    try:
+        group_id, user_id = parse_event_info(event)
+        success, msg = await Subscribe.unsubscribe_contest(
+            group_id=group_id,
+            contest_id=str(contest_id),
+            user_id=user_id
+        )
+        await unsubscribe_contests.finish(msg)
+    except ValueError as e:
+        await unsubscribe_contests.finish(str(e))
 
 # 查看订阅列表
 list_subscribes = on_alconna(
@@ -215,24 +201,12 @@ list_subscribes = on_alconna(
 @list_subscribes.handle()
 async def handle_list_subscribes(event: Event):
     """查看当前订阅列表"""
-    from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
-    from nonebot.adapters import Event
-    
-    event_obj = event
-    group_id = None
-    user_id = None
-    
-    if isinstance(event_obj, GroupMessageEvent):
-        group_id = str(event_obj.group_id)
-        user_id = str(event_obj.user_id)
-    elif isinstance(event_obj, PrivateMessageEvent):
-        group_id = "null"  # 私聊时群组ID为null字符串
-        user_id = str(event_obj.user_id)
-    else:
-        await list_subscribes.finish("不支持的聊天类型")
-    
-    msg = await Subscribe.list_subscribes(group_id, user_id) # type: ignore
-    await list_subscribes.finish(msg)
+    try:
+        group_id, user_id = parse_event_info(event)
+        msg = await Subscribe.list_subscribes(group_id, user_id)
+        await list_subscribes.finish(msg)
+    except ValueError as e:
+        await list_subscribes.finish(str(e))
 
 # 清空订阅
 clear_subscribes = on_alconna(
@@ -245,24 +219,12 @@ clear_subscribes = on_alconna(
 @clear_subscribes.handle()
 async def handle_clear_subscribes(event: Event):
     """清空当前的所有订阅"""
-    from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent
-    from nonebot.adapters import Event
-    
-    event_obj = event
-    group_id = None
-    user_id = None
-    
-    if isinstance(event_obj, GroupMessageEvent):
-        group_id = str(event_obj.group_id)
-        user_id = str(event_obj.user_id)
-    elif isinstance(event_obj, PrivateMessageEvent):
-        group_id = "null"  # 私聊时群组ID为null字符串
-        user_id = str(event_obj.user_id)
-    else:
-        await clear_subscribes.finish("不支持的聊天类型")
-    
-    success, msg = await Subscribe.clear_subscribes(group_id, user_id) # type: ignore
-    await clear_subscribes.finish(msg)
+    try:
+        group_id, user_id = parse_event_info(event)
+        success, msg = await Subscribe.clear_subscribes(group_id, user_id)
+        await clear_subscribes.finish(msg)
+    except ValueError as e:
+        await clear_subscribes.finish(str(e))
 
 
 
@@ -276,25 +238,3 @@ async def restore_scheduled_jobs():
     except Exception as e:
         logger.error(f"恢复定时任务失败: {e}")
 
-
-# # 每日定时任务
-# async def check(bot: Bot, group_id: str) -> bool:
-#     return not await CommonUtils.task_is_block(bot, "today_match", group_id)
-
-
-# @scheduler.scheduled_job(
-#     "cron",
-#     hour=6,  # 改为凌晨0点
-#     minute=1,  # 第1分钟
-# )
-# async def send_daily_matches():
-#     try:
-#         msg = await DataSource.ans_today()
-#         await broadcast_group(
-#             msg,
-#             log_cmd="今日比赛提醒",  # 修改日志标识
-#             check_func=check,  # 保留检查函数
-#         )
-#         logger.info("每日比赛提醒发送成功")
-#     except Exception as e:
-#         logger.error(f"发送每日比赛提醒失败: {e}")
