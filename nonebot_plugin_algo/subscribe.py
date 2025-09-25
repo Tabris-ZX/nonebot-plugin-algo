@@ -6,16 +6,21 @@ from nonebot.log import logger
 from nonebot import require
 require("nonebot_plugin_apscheduler")
 from nonebot_plugin_apscheduler import scheduler
-
-from .config import algo_config
+from .config import algo_config,subscribe_save_path
 from .util import Util
 
 class Subscribe:
     # 订阅数据文件路径
-    save_path = algo_config.algo_save_path
+    save_path = subscribe_save_path
+
     def __init__(self):
         self._ensure_data_dir()
         self.subscribes = self._load_subscribes()
+    
+    @staticmethod
+    def _get_key(group_id: str, user_id: Optional[str] = None) -> str:
+        """获取存储键：私聊场景使用用户ID，群聊使用群ID"""
+        return user_id if group_id == "null" and user_id else group_id
     
     def _ensure_data_dir(self):
         """确保数据目录存在"""
@@ -49,10 +54,7 @@ class Subscribe:
         href: Optional[str] = None
     ):
         """添加订阅"""
-
-        print(algo_config.algo_save_path)
-        # 对于私聊场景，使用用户ID作为键
-        key = user_id if group_id == "null" else group_id
+        key = self._get_key(group_id, user_id)
         if key not in self.subscribes:
             self.subscribes[key] = [] #type: ignore
         
@@ -83,8 +85,7 @@ class Subscribe:
         user_id: Optional[str] = None
     ) -> bool:
         """取消订阅"""
-        # 对于私聊场景，使用用户ID作为键
-        key = user_id if group_id == "null" else group_id
+        key = self._get_key(group_id, user_id)
         if key not in self.subscribes:
             return False
         
@@ -101,8 +102,7 @@ class Subscribe:
         user_id: Optional[str] = None
     ) -> List[Dict]:
         """获取订阅列表"""
-        # 对于私聊场景，使用用户ID作为键
-        key = user_id if group_id == "null" else group_id
+        key = self._get_key(group_id, user_id)
         return self.subscribes.get(key, []) #type: ignore
     
     def clear_group_subscribes(
@@ -111,8 +111,7 @@ class Subscribe:
         user_id: Optional[str] = None
     ) -> bool:
         """清空所有订阅"""
-        # 对于私聊场景，使用用户ID作为键
-        key = user_id if group_id == "null" else group_id
+        key = self._get_key(group_id, user_id)
         if key in self.subscribes:
             del self.subscribes[key]
             self._save_subscribes()
@@ -218,7 +217,8 @@ class Subscribe:
                 return False, "比赛即将开始，无法订阅"
             
             # 添加定时任务
-            job_id = f"contest_reminder_{user_id if group_id == 'null' else group_id}_{contest['id']}"
+            key = cls._get_key(group_id, user_id)
+            job_id = f"contest_reminder_{key}_{contest['id']}"
             scheduler.add_job(
                 func=cls.send_contest_reminder,
                 args=({
@@ -254,7 +254,8 @@ class Subscribe:
             # 取消订阅
             if subscribe_manager.remove_subscribe(group_id, contest_id, user_id):
                 # 删除定时任务
-                job_id = f"contest_reminder_{user_id if group_id == 'null' else group_id}_{contest_id}"
+                key = Subscribe._get_key(group_id, user_id)
+                job_id = f"contest_reminder_{key}_{contest_id}"
                 try:
                     scheduler.remove_job(job_id)
                 except:
@@ -317,8 +318,9 @@ class Subscribe:
             subscribes = subscribe_manager.get_group_subscribes(group_id, user_id)
             
             # 删除所有定时任务
+            key = Subscribe._get_key(group_id, user_id)
             for sub in subscribes:
-                job_id = f"contest_reminder_{user_id if group_id == 'null' else group_id}_{sub['contest_id']}"
+                job_id = f"contest_reminder_{key}_{sub['contest_id']}"
                 try:
                     scheduler.remove_job(job_id)
                 except:
