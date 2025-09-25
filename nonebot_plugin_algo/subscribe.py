@@ -22,11 +22,6 @@ class Subscribe:
         """获取存储键：私聊场景使用用户ID，群聊使用群ID"""
         return user_id if group_id == "null" and user_id else group_id
     
-    @staticmethod
-    def _get_key(group_id: str, user_id: Optional[str] = None) -> str:
-        """获取存储键：私聊场景使用用户ID，群聊使用群ID"""
-        return user_id if group_id == "null" and user_id else group_id
-    
     def _ensure_data_dir(self):
         """确保数据目录存在"""
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
@@ -60,7 +55,6 @@ class Subscribe:
     ):
         """添加订阅"""
         key = self._get_key(group_id, user_id)
-        key = self._get_key(group_id, user_id)
         if key not in self.subscribes:
             self.subscribes[key] = [] #type: ignore
         
@@ -92,7 +86,6 @@ class Subscribe:
     ) -> bool:
         """取消订阅"""
         key = self._get_key(group_id, user_id)
-        key = self._get_key(group_id, user_id)
         if key not in self.subscribes:
             return False
         
@@ -110,7 +103,6 @@ class Subscribe:
     ) -> List[Dict]:
         """获取订阅列表"""
         key = self._get_key(group_id, user_id)
-        key = self._get_key(group_id, user_id)
         return self.subscribes.get(key, []) #type: ignore
     
     def clear_group_subscribes(
@@ -119,7 +111,6 @@ class Subscribe:
         user_id: Optional[str] = None
     ) -> bool:
         """清空所有订阅"""
-        key = self._get_key(group_id, user_id)
         key = self._get_key(group_id, user_id)
         if key in self.subscribes:
             del self.subscribes[key]
@@ -228,8 +219,6 @@ class Subscribe:
             # 添加定时任务
             key = cls._get_key(group_id, user_id)
             job_id = f"contest_reminder_{key}_{contest['id']}"
-            key = cls._get_key(group_id, user_id)
-            job_id = f"contest_reminder_{key}_{contest['id']}"
             scheduler.add_job(
                 func=cls.send_contest_reminder,
                 args=({
@@ -265,8 +254,6 @@ class Subscribe:
             # 取消订阅
             if subscribe_manager.remove_subscribe(group_id, contest_id, user_id):
                 # 删除定时任务
-                key = Subscribe._get_key(group_id, user_id)
-                job_id = f"contest_reminder_{key}_{contest_id}"
                 key = Subscribe._get_key(group_id, user_id)
                 job_id = f"contest_reminder_{key}_{contest_id}"
                 try:
@@ -332,9 +319,7 @@ class Subscribe:
             
             # 删除所有定时任务
             key = Subscribe._get_key(group_id, user_id)
-            key = Subscribe._get_key(group_id, user_id)
             for sub in subscribes:
-                job_id = f"contest_reminder_{key}_{sub['contest_id']}"
                 job_id = f"contest_reminder_{key}_{sub['contest_id']}"
                 try:
                     scheduler.remove_job(job_id)

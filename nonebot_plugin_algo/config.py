@@ -1,5 +1,4 @@
 
-
 from pydantic import BaseModel
 from nonebot import get_plugin_config,require
 from pathlib import Path
@@ -19,6 +18,7 @@ class AlgoConfig(BaseModel):
     # 排序字段
     algo_order_by: str = "start"
 
+   
     @property
     def default_params(self) -> dict:
         return {
