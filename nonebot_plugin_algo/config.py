@@ -17,8 +17,34 @@ class AlgoConfig(BaseModel):
     algo_remind_pre: int = 30
     # 排序字段
     algo_order_by: str = "start"
+    # 洛谷cookie(选填,填写后可获取用户关注/动态信息)
+    # luogu_cookie: str =""
+    # luogu_x_csrf_token: str =""
+    # luogu_x_requested_with: str =""
+    
+    # 洛谷难度等级名称映射
+    luogu_difficulty_names: dict = {
+        -1: "暂未评级",
+        1: "入门",
+        2: "普及-",
+        3: "普及/提高-",
+        4: "普及+/提高",
+        5: "提高+/省选",
+        6: "省选/NOI-",
+        7: "NOI/NOI+/CTSC",
+    }
 
-   
+    # 洛谷用户名颜色
+    luogu_name_color: dict = {
+        "Gray": "#bbbbbb",
+        "Blue": "#0e90d2",
+        "Green": "#5eb95e",
+        "Orange": "#e67e22",
+        "Red": "#e74c3c",
+        "Purple": "#9d3dcf",
+        "Cheater": "#ad8b00",
+    }
+
     @property
     def default_params(self) -> dict:
         return {
@@ -28,9 +54,10 @@ class AlgoConfig(BaseModel):
             "limit": self.algo_limit,
         }
 
-# 获取插件配置
-plugin_config_dir: Path = store.get_plugin_config_dir()
+# 获取插件存储
+plugin_data_dir: Path = store.get_plugin_data_dir()
 
 algo_config:AlgoConfig = get_plugin_config(AlgoConfig)
 
-subscribe_save_path: Path = plugin_config_dir / "subscribes.json"
+subscribe_save_path: Path = plugin_data_dir / "subscribes.json"
+luogu_save_path: Path = plugin_data_dir / "luogu"

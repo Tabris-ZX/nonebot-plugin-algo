@@ -41,8 +41,9 @@ class Subscribe:
         try:
             with open(self.save_path, 'w', encoding='utf-8') as f:
                 json.dump(self.subscribes, f, ensure_ascii=False, indent=2)
+            logger.info(f"订阅数据已保存: {self.save_path}")
         except Exception as e:
-            logger.error(f"保存订阅数据失败: {e}")
+            logger.error(f"保存订阅数据失败: {e} (path={self.save_path})")
     
     def add_subscribe(
         self, 
@@ -149,6 +150,21 @@ class Subscribe:
                     message=message
                 )
             
+            # 发送成功后，移除该场比赛的订阅记录
+            try:
+                subscribe_manager = Subscribe()
+                group_id = contest_info.get("group_id", "null")
+                user_id = contest_info.get("user_id")
+                contest_id = str(contest_info.get("contest_id", ""))
+                if contest_id:
+                    removed = subscribe_manager.remove_subscribe(group_id, contest_id, user_id)
+                    if removed:
+                        logger.info(f"已移除订阅: {contest_info.get('event')} (contest_id={contest_id})")
+                    else:
+                        logger.info(f"未找到订阅以移除: {contest_info.get('event')} (contest_id={contest_id})")
+            except Exception as e:
+                logger.error(f"发送后移除订阅失败: {e}")
+
             # 发送成功后，清理已过期的订阅
             await cls.cleanup_expired_subscriptions()
             
@@ -169,6 +185,7 @@ class Subscribe:
         
         try:
             contest_info = await Util.get_contest_info(id=id, event__regex=event__regex)
+            logger.info(f"比赛信息: {contest_info}")
             if isinstance(contest_info, int) or contest_info is None or not contest_info:
                 return False, "未找到相关比赛"
             
@@ -224,6 +241,7 @@ class Subscribe:
                 args=({
                     'group_id': group_id,
                     'user_id': user_id,
+                    'contest_id': str(contest['id']),
                     'event': contest['event'],
                     'start_time': Util.utc_to_local(contest['start']),
                     'href': contest.get('href', '')
@@ -366,6 +384,7 @@ class Subscribe:
                             args=({
                                 'group_id': sub.get('group_id'),
                                 'user_id': sub.get('user_id'),
+                                'contest_id': sub.get('contest_id'),
                                 'event': sub['event'],
                                 'start_time': datetime.fromisoformat(sub['start_time']).strftime('%Y-%m-%d %H:%M'),
                                 'href': sub.get('href', '')

@@ -68,11 +68,21 @@ class Util:
                 **algo_config.default_params,
             }
         else:
-            now_start = datetime.now().astimezone(timezone.utc)
-            last_start = (now_start + timedelta(days=days)).replace(hour=0, minute=0, second=0)
+            # 使用本地时区的“今日”日界来构建查询窗口
+            # 起点：当前本地时间；终点：days 天后的本地 00:00（减 1 秒确保不包含次日 00:00）
+            now_local = datetime.now().astimezone()
+            end_local = (now_local + timedelta(days=days)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            # 统一转为 UTC，服务端以 UTC 解析更稳定
+            now_utc = now_local.astimezone(timezone.utc)
+            end_utc = end_local.astimezone(timezone.utc)
+
             base_params = {
-                "start__gte": now_start.strftime("%Y-%m-%dT%H:%M:%S"),
-                "start__lte": last_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                "start__gte": now_utc,
+                # 使用 <= 边界，减 1 秒避免包含次日 00:00 整点
+                "start__lte": end_utc - timedelta(seconds=1),
                 **algo_config.default_params,
                 **{"resource_id": resource_id},
             }
