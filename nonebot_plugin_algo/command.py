@@ -2,7 +2,6 @@ from nonebot import require, get_driver
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_apscheduler")
-require("nonebot_plugin_uninfo")
 from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna
 from nonebot_plugin_uninfo import Uninfo
 from nonebot.adapters import Event
@@ -126,11 +125,6 @@ async def handle_my_luogu(session:Uninfo):
     msg = await Luogu.build_bind_user_info(user_qq)
     if msg is None:
         await my_luogu.finish("你还未绑定洛谷账号捏~",reply_to=True)
-    try:
-        from playwright.async_api import async_playwright
-    except Exception as e:
-        logger.warning(f"未安装 Playwright：{e}")
-        await my_luogu.finish("未安装 Playwright，无法发送图片捏")
     await my_luogu.send(MessageSegment.image(msg),reply_to=True)
 
 @luogu_info.handle()
@@ -138,12 +132,10 @@ async def handle_luogu_info(user: str| int):
     """查询指定用户洛谷信息"""
     msg = await Luogu.build_user_info(user)
     if msg is None:
-        await luogu_info.finish("该用户不存在")
-    try:
-        from playwright.async_api import async_playwright
-    except Exception as e:
-        logger.warning(f"未安装 Playwright：{e}")
-        await luogu_info.finish("未安装 Playwright，无法发送图片捏")
+        if algo_config.luogu_cookie and algo_config.luogu_x_csrf_token:
+            await luogu_info.finish("该用户不存在捏~")
+        else:
+            await luogu_info.finish("该用户不存在或未实名认证捏~")
     await luogu_info.send(MessageSegment.image(msg))
 
 @recent_contest.handle()

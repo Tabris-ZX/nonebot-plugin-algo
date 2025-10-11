@@ -113,7 +113,7 @@ plugins = ["nonebot_plugin_algo"]
 > ⚠️ **重要提示**：本插件需要 clist.by API 凭据才能正常工作，请务必先申请！
 
 <details>
-<summary>🔧 必需配置</summary>
+<summary>🔧 配置说明</summary>
 
 **第一步：申请 API 凭据**
 1. 访问 [clist.by](https://clist.by/api/v4/doc/) 注册账号
@@ -124,17 +124,25 @@ plugins = ["nonebot_plugin_algo"]
 在 `.env` 文件中添加配置：
 
 ```env
-# clist.by API 凭据（必需）
+# ========== 必需配置 ==========
+# clist.by API 凭据（必须配置才能使用比赛查询功能）
 clist_username=your_username    # 你的 clist.by 用户名
 clist_api_key=your_api_key      # 你的 clist.by API Key
 
-# 查询配置（可选）
-algo_days=7                    # 查询近期天数，默认 7
-algo_limit=20                  # 返回数量上限，默认 20
-algo_remind_pre=30             # 提醒提前时间（分钟），默认 30
-algo_order_by=start            # 排序字段，默认 start
+# ========== 可选配置 ==========
+# 比赛查询配置
+algo_days=7                    # 查询近期天数（默认：7天）
+algo_limit=20                  # 返回数量上限（默认：20条）
+algo_remind_pre=30             # 提醒提前时间，单位：分钟（默认：30分钟）
+algo_order_by=start            # 排序字段（默认：start，按开始时间排序）
 ```
-> ⚠️ **重要**：没有 API 凭据将无法使用任何功能！请务必前往 [clist.by API 文档](https://clist.by/api/v4/doc/) 申请。
+
+**配置项说明：**
+- **必需配置**：`clist_username` 和 `clist_api_key` 必须正确配置
+- **洛谷Cookie**：仅在需要查询隐私设置用户时配置，普通查询无需此项
+- **数据存储**：插件会自动在本地创建数据目录存储订阅信息和洛谷卡片缓存
+
+> 💡 **提示**：洛谷卡片缓存会在每天 2:00、10:00、18:00 自动清理
 </details>
 
 ## 📖 使用示例
@@ -179,15 +187,11 @@ algo_order_by=start            # 排序字段，默认 start
 - [X] **题目查询** - 根据比赛ID查询题目信息
 - [X] **订阅提醒系统** - 智能比赛订阅与定时提醒
 - [X] **洛谷用户绑定** - 支持用户名和ID绑定
-- [X] **洛谷信息查询** - 用户详细信息查询
-
-### 🚧 计划中功能
-
-- [ ] **批量订阅管理** - 一键管理多个订阅
-- [ ] **自定义提醒时间** - 个性化提醒时间设置
-- [ ] **多语言支持** - 国际化界面
-- [ ] **Web管理面板** - 可视化订阅管理
-- [ ] **更多OJ平台** - 支持更多在线判题平台
+- [X] **洛谷信息查询** - 洛谷用户详细信息查询
+- [ ] **cf信息查询** - cf用户详细信息查询
+- [ ] **atc信息查询** - atc用户详细信息查询
+- [ ] **个性题单** - 用户自建个性题单
+- [ ] **题目链接解析** - 题目链接自动解析出题面,IO样例
 
 ## 📄 开源协议
 本项目基于 [MIT License](LICENSE) 开源协议。
