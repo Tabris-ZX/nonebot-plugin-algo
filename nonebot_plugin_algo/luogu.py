@@ -23,8 +23,8 @@ class Luogu:
                 "Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0",
             "X-Lentille-Request": "content-only",    
             "x-requested-with": "XMLHttpRequest",
-            "cookie":algo_config.luogu_cookie,
-            "x-csrf-token": algo_config.luogu_x_csrf_token,
+            # "cookie":algo_config.luogu_cookie,
+            # "x-csrf-token": algo_config.luogu_x_csrf_token,
         }
     base_url = "https://www.luogu.com.cn"
 

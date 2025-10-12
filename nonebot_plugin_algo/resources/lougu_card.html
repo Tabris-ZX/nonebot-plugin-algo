@@ -127,8 +127,9 @@
       text-overflow: ellipsis;
       box-shadow:
         0 6px 12px rgba(0, 0, 0, 0.25),
-        inset 0 2px 4px rgba(255, 255, 255, 0.1);/* 内部高光，增加立体感 */
-    
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+      /* 内部高光，增加立体感 */
+
     }
 
     .panel {
@@ -150,25 +151,27 @@
     .cell {
       background-color: #2670d2;
       /* 深蓝底色 */
-      border-radius: 20px;
+      border-radius: 14px;
       padding: 12px 20px;
       color: white;
-      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
 
       /* 阴影增强层次感 */
       box-shadow:
         0 6px 12px rgba(0, 0, 0, 0.25),
-        inset 0 2px 4px rgba(255, 255, 255, 0.1);/* 内部高光，增加立体感 */
+        /* 主阴影 */
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+      /* 内部高光，增加立体感 */
     }
 
     /* 标签（中文圆润字体） */
     .cell .label {
-      font-size: 20px;
+      font-size: 16px;
       opacity: 0.95;
-      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
+      font-family: '思源圆体', 'Noto Sans SC', sans-serif;
       letter-spacing: .2px;
       font-weight: 400;
 
+      /* 文字微阴影让白字更柔和 */
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
 
@@ -177,12 +180,14 @@
       margin-top: 6px;
       font-size: 22px;
       font-weight: 600;
-      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
 
+      /* 给数字一点柔光阴影，让它更突出 */
       text-shadow:
         0 2px 4px rgba(0, 0, 0, 0.3),
         0 0 4px rgba(255, 255, 255, 0.2);
     }
+
 
     .bars {
       margin-top: 10px;
@@ -253,8 +258,7 @@
 
 <body>
   <div class="canvas">
-    <img class="logo" src="https://fecdn.luogu.com.cn/luogu/logo.png"
-      alt="Luogu Logo" />
+    <img class="logo" src="https://fecdn.luogu.com.cn/luogu/logo.png" alt="Luogu Logo" />
     <div class="header">
       <img class="avatar" src="{{avatar}}" alt="avatar" />
     </div>
