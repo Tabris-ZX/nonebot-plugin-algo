@@ -2,6 +2,7 @@ from nonebot import require, get_driver
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_uninfo")
 from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna
 from nonebot_plugin_uninfo import Uninfo
 from nonebot.adapters import Event
@@ -132,10 +133,8 @@ async def handle_luogu_info(user: str| int):
     """查询指定用户洛谷信息"""
     msg = await Luogu.build_user_info(user)
     if msg is None:
-        if algo_config.luogu_cookie and algo_config.luogu_x_csrf_token:
-            await luogu_info.finish("该用户不存在捏~")
-        else:
-            await luogu_info.finish("该用户不存在或未实名认证捏~")
+        await luogu_info.finish("该用户不存在或未实名认证捏~")
+            
     await luogu_info.send(MessageSegment.image(msg))
 
 @recent_contest.handle()
