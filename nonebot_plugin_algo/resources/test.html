@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luogu User Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 1200px;
+      background: transparent;
+      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
+      color: #ffffff;
+    }
+
+    .canvas {
+      width: 1200px;
+      min-height: 640px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #1071d2;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+
+    .logo {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: 90px;
+      height: 48px;
+      z-index: 10;
+    }
+
+    .header {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .avatar {
+      margin-top: 50px;
+      width: 128px;
+      height: 128px;
+      border-radius: 32px;
+      object-fit: cover;
+      background: #fff8e1;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .15);
+      border: 4px solid rgba(255, 255, 255, .35);
+      z-index: 2;
+    }
+
+    .name-row {
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .name {
+      margin-top: 0;
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      color: #ffffff;
+      text-shadow: none;
+    }
+
+    .name-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+
+    .sub {
+      margin-top: 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, .9);
+      max-width: 24em;
+      text-align: center;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+      position: relative;
+      z-index: 2;
+    }
+
+    .levels {
+      margin-top: 10px;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: nowrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .levels::after {
+      content: '';
+      position: absolute;
+      top: calc(100% + 20px);
+      left: 45%;
+      transform: translateX(-50%) translateY(-100%);
+      width: 1040px;
+      height: 250px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(240, 248, 255, 0.2));
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      {% if background %}
+      background-image: url("{{background}}");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      {% endif %}
+      border-radius: 16px;
+      opacity: 0.9;
+      z-index: -1;
+    }
+
+    .level {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(158, 183, 216, 0.3);
+      color: #fff;
+      border-radius: 32px;
+      font-weight: 500;
+      font-size: 18px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25);
+      width: 160px;
+      justify-content: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+
+    }
+
+
+    .panel {
+      margin-top: 17px;
+      width: 95%;
+      background: rgba(36, 67, 172, 0.2);
+      border-radius: 16px;
+      padding: 18px;
+      backdrop-filter: blur(1px);
+      box-shadow: inset 0 0 0 1px rgba(71, 54, 54, 0.22);
+      position: relative;
+      z-index: 2;
+    }
+
+    .content-grid {
+      margin-top: 22px;
+      width: 92%;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 5px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .content-grid .col-left,
+    .content-grid .col-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 右栏面板内改为单列纵向排列 */
+    .content-grid .col-right .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 14px;
+    }
+
+    .cell {
+      background-color: #2670d2;
+      /* 深蓝底色 */
+      border-radius: 14px;
+      padding: 12px 20px;
+      color: white;
+
+      /* 阴影增强层次感 */
+      box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        /* 主阴影 */
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+      /* 内部高光，增加立体感 */
+    }
+
+    /* 标签（中文圆润字体） */
+    .cell .label {
+      font-size: 18px;
+      opacity: 0.95;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+      letter-spacing: .2px;
+      font-weight: 500;
+
+      /* 文字微阴影让白字更柔和 */
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    /* 数值部分 */
+    .cell .value {
+      margin-top: 6px;
+      font-size: 22px;
+      font-weight: 600;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+
+      /* 给数字一点柔光阴影，让它更突出 */
+      text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 4px rgba(255, 255, 255, 0.2);
+    }
+
+
+    .bars {
+      margin-top: 10px;
+      background: rgba(255, 255, 255, .22);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0;
+    }
+
+    .bar .tag {
+      width: 98px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+      text-align: right;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+    }
+
+    .bar .track {
+      width: 400px;
+      height: 14px;
+      background: rgba(255, 255, 255, .35);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .bar .fill {
+      height: 100%;
+      border-radius: 8px;
+      width: var(--w, 0%);
+      background: var(--c, #fff);
+    }
+
+    .bar .value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+    }
+
+    .footer {
+      margin-top: auto;
+      font-size: 12px;
+      color: rgba(255, 255, 255, .9);
+      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      position: relative;
+      z-index: 2;
+    }
+
+    .footer-left {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .7);
+    }
+
+    .footer-right {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .9);
+    }
+
+    .heatmap-container {
+      margin-top: 15px;
+      width: 95%;
+      background: rgba(36, 67, 172, 0.2);
+      border-radius: 16px;
+      padding: 18px;
+      backdrop-filter: blur(1px);
+      box-shadow: inset 0 0 0 1px rgba(71, 54, 54, 0.22);
+      position: relative;
+      z-index: 2;
+      color: #ffffff;
+    }
+
+    .heatmap-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 15px;
+      text-align: center;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+    }
+
+    .heatmap-body {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .heatmap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .heatmap-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .day-label {
+      width: 22px;
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .heatmap-grid {
+      display: flex;
+      gap: 4px;
+      flex-wrap: nowrap;
+    }
+
+    .heatmap-cell {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background-color: #e5e7eb;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02) inset;
+    }
+
+    .heatmap-cell.level-0 { background-color: #e5e7eb; border-color: #e5e7eb; }
+    .heatmap-cell.level-1 { background-color: #fff3c4; border-color: #fff3c4; }
+    .heatmap-cell.level-2 { background-color: #ffe08a; border-color: #ffe08a; }
+    .heatmap-cell.level-3 { background-color: #ffc74d; border-color: #ffc74d; }
+    .heatmap-cell.level-4 { background-color: #ffb000; border-color: #ffb000; }
+    .heatmap-cell.level-5 { background-color: #ff8c00; border-color: #ff8c00; }
+    .heatmap-cell.level-6 { background-color: #ff7f00; border-color: #ff7f00; }
+
+    .heatmap-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-left: auto;
+      align-items: flex-start;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .heatmap-note {
+      position: absolute;
+      right: 24px;
+      top: 24px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="canvas">
+    <img class="logo" src="https://fecdn.luogu.com.cn/luogu/logo.png" alt="Luogu Logo" />
+    <div class="header">
+      <img class="avatar" src="{{avatar}}" alt="avatar" />
+    </div>
+    <div class="name-row">
+      <div class="name">{{ name_styled|safe }}</div>
+      {% if name_badge %}{{ name_badge|safe }}{% endif %}
+    </div>
+    <div class="sub">{{slogan}}</div>
+    <div class="levels">
+      <div class="level">🪪UID: {{uid}}</div>
+    </div>
+
+    <div class="content-grid">
+      <div class="col-left">
+        <!-- 热力图 -->
+        <div class="heatmap-container">
+          <div class="heatmap-title">Daily Counts</div>
+          <div class="heatmap-body">
+            <div class="heatmap">
+              {% if heatmap_rows and weekday_labels %}
+              {% for i in range(heatmap_rows|length) %}
+              {% set row = heatmap_rows[i] %}
+              <div class="heatmap-row">
+                <div class="day-label">{{ weekday_labels[i] }}</div>
+                <div class="heatmap-grid">
+                  {% for level in row %}
+                  <div class="heatmap-cell level-{{ level }}"></div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+              {% else %}
+              <div class="heatmap-row">
+                <div class="day-label">日</div>
+                <div class="heatmap-grid">
+                  <div class="heatmap-cell level-0"></div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="label" style="text-align: center; font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif; font-size: 18px; font-weight: 600; color: #ffffff;">📊 Submission Details</div>
+          <div class="bars">
+            {% for b in diff_bars %}
+            <div class="bar">
+              <div class="tag">{{ b.label }}</div>
+              <div class="track" style="width: 450px;">
+                <div class="fill" style="--w: {{ [((b.value)|float)**0.5 / 20 * 100, 100]|min }}%; --c: {{ b.color }};"></div>
+              </div>
+              <div class="value">{{ b.value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-right">
+        <div class="panel">
+          <div class="grid">
+            <div class="cell">
+              <div class="label">✅ PASSED</div>
+              <div class="value">{{passed}}</div>
+            </div>
+            <div class="cell">
+              <div class="label">⚔️ RATING
+              </div>
+              <div class="value">{{elo}}</div>
+            </div>
+            <div class="cell">
+              <div class="label">👥 Following/Followers</div>
+              <div class="value">{{following}} / {{followers}}</div>
+            </div>
+            <div class="cell" style="min-height: 120px;">
+              <div class="label">🏅 Prizes</div>
+              <div class="value"
+                style="font-size:16px; font-weight:500; line-height:1.5; white-space:normal; word-break:break-word;">
+                {% if prize_rows and prize_rows|length > 0 %}
+                {% for r in prize_rows %}
+                <div style="display:flex; justify-content:space-between; gap:12px;">
+                  <div>{{ r.left }}</div>
+                  <div>{{ r.right_html|safe }}</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div>暂无记录</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="footer-left">{{ current_time }}</div>
+      <div class="footer-right">Created by Tabris_ZX</div>
+    </div>
+  </div>
+</body>
+
+</html>

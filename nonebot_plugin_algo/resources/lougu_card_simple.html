@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luogu User Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 640px;
+      background: transparent;
+      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
+      color: #ffffff;
+    }
+
+    .canvas {
+      width: 640px;
+      min-height: 640px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #1071d2;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .logo {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: 90px;
+      height: 48px;
+      z-index: 10;
+    }
+
+    .header {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .avatar {
+      width: 128px;
+      height: 128px;
+      border-radius: 32px;
+      object-fit: cover;
+      background: #fff8e1;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .15);
+      border: 4px solid rgba(255, 255, 255, .35);
+      z-index: 2;
+    }
+
+
+    .name-row {
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 2;
+    }
+
+    .name {
+      margin-top: 0;
+      font-size: 36px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      color: #ffffff;
+      text-shadow: none;
+    }
+
+    .name-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+
+    .sub {
+      margin-top: 0;
+      font-size: 14px;
+      color: rgba(255, 255, 255, .9);
+      max-width: 24em;
+      text-align: center;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+      position: relative;
+      z-index: 2;
+    }
+
+    .levels {
+      margin-top: 10px;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: nowrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .levels::after {
+      content: '';
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      width: 560px;
+      height: 200px;
+      /* filter: blur(1px); */
+      background-image: url("{{background}}");
+      /* background-image: url("test_img.jpg"); */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-radius: 16px;
+      opacity: 0.8;
+      z-index: -1;
+    }
+
+    .level {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 14px;
+      background: rgba(137, 165, 205, 0.3);
+      color: #fff;
+      border-radius: 16px;
+      font-weight: 500;
+      font-size: 16px;
+      width: 160px;
+      justify-content: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    }
+
+
+    .panel {
+      margin-top: 18px;
+      width: 95%;
+      background: rgba(36, 67, 172, 0.2);
+      border-radius: 16px;
+      padding: 18px;
+      backdrop-filter: blur(1px);
+      box-shadow: inset 0 0 0 1px rgba(71, 54, 54, 0.22);
+      position: relative;
+      z-index: 2;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 14px;
+    }
+
+    .cell {
+      background-color: #2670d2;
+      border-radius: 14px;
+      padding: 12px 20px;
+      color: white;
+      box-shadow:
+        0 6px 12px rgba(0, 0, 0, 0.25),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    }
+
+    .cell .label {
+      font-size: 16px;
+      opacity: 0.95;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+      letter-spacing: .2px;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+
+    .cell .value {
+      margin-top: 6px;
+      font-size: 22px;
+      font-weight: 600;
+      font-family: 'Baloo2-SemiBold', 'Noto Sans SC', sans-serif;
+      text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 4px rgba(255, 255, 255, 0.2);
+    }
+
+
+    .bars {
+      margin-top: 10px;
+      background: rgba(255, 255, 255, .22);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 6px 0;
+    }
+
+    .bar .tag {
+      width: 98px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #fff;
+      text-align: right;
+    }
+
+    .bar .track {
+      flex: 1;
+      height: 14px;
+      background: rgba(255, 255, 255, .35);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .bar .fill {
+      height: 100%;
+      border-radius: 8px;
+      width: var(--w, 0%);
+      background: var(--c, #fff);
+    }
+
+    .bar .value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+    }
+
+    .footer {
+      margin-top: auto;
+      font-size: 12px;
+      color: rgba(255, 255, 255, .9);
+      font-family: 'Baloo2-SemiBold', 'Baloo 2', sans-serif;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .footer-left {
+      font-size: 11px;
+      color: rgba(255, 255, 255, .7);
+    }
+
+    .footer-right {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .9);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="canvas">
+    <img class="logo" src="https://fecdn.luogu.com.cn/luogu/logo.png" alt="Luogu Logo" />
+    <div class="header">
+      <img class="avatar" src="{{avatar}}" alt="avatar" />
+    </div>
+    <div class="name-row">
+      <div class="name">{{ name_styled|safe }}</div>
+      {% if name_badge %}{{ name_badge|safe }}{% endif %}
+    </div>
+    <div class="sub">{{slogan}}</div>
+    <div class="levels">
+      <div class="level">🪪UID: {{uid}}</div>
+      <div class="level">⚔️ELO: {{elo}}</div>
+    </div>
+
+
+    <div class="panel">
+      <div class="grid">
+        <div class="cell">
+          <div class="label">✅ Passed</div>
+          <div class="value">{{passed}}</div>
+        </div>
+        <div class="cell">
+          <div class="label">👥 Followers / Fans</div>
+          <div class="value">{{following}} / {{followers}}</div>
+        </div>
+        <div class="cell" style="grid-column: 1 / span 2">
+          <div class="label">🏅 Prizes</div>
+          <div class="value"
+            style="font-size:16px; font-weight:500; line-height:1.5; white-space:normal; word-break:break-word;">
+            {% if prize_rows and prize_rows|length > 0 %}
+            {% for r in prize_rows %}
+            <div style="display:flex; justify-content:space-between; gap:12px;">
+              <div>{{ r.left }}</div>
+              <div>{{ r.right_html|safe }}</div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div>暂无记录</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="cell" style="grid-column: 1 / span 2">
+          <div class="label">📊 Submission Datails</div>
+          <div class="bars">
+            {% for b in diff_bars %}
+            <div class="bar">
+              <div class="tag">{{ b.label }}</div>
+              <div class="track">
+                <div class="fill" style="--w: {{ b.width }}%; --c: {{ b.color }};"></div>
+              </div>
+              <div class="value">{{ b.value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">{{ current_time }}</div>
+      <div class="footer-right">Created by Tabris_ZX</div>
+    </div>
+  </div>
+</body>
+
+</html>

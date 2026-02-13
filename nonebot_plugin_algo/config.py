@@ -9,6 +9,7 @@ import nonebot_plugin_localstore as store
 class AlgoConfig(BaseModel):
     clist_username: str =""
     clist_api_key: str =""
+    oj_include:list[int] = [1,93,163,166,102]
     # 查询天数
     algo_days: int = 7
     # 查询结果数量限制
@@ -20,12 +21,14 @@ class AlgoConfig(BaseModel):
     # 洛谷cookie(选填,填写后可获取用户关注/动态信息,隐私设置用户)
     # luogu_cookie: str =""
     # luogu_x_csrf_token: str =""
+    
 
     @property
     def default_params(self) -> dict:
         return {
             "username": self.clist_username,
             "api_key": self.clist_api_key,
+            "resource_id__in": self.oj_include,
             "order_by": self.algo_order_by,
             "limit": self.algo_limit,
         }

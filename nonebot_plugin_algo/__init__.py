@@ -6,30 +6,38 @@ __plugin_meta__ = PluginMetadata(
     description="支持 oj算法比赛日程查询/订阅,洛谷信息绑定/查询,后面还会增添更多功能~",
     usage="""
     比赛查询:
-    今日/近期比赛: 查询今日/近期未开始的比赛
-    比赛 ?[平台id] ?[天数=7] : 按条件查询比赛
-    题目 [比赛id] : 查询比赛题目
+    今日比赛: 查询今日未开始的比赛
+    近期比赛 ?[平台id] ?[天数=7] : 按条件查询比赛
+    比赛题目 [比赛id] : 查询比赛题目
 
     洛谷服务:
     绑定洛谷 [用户名/id]: 绑定洛谷用户
     我的洛谷 :查询自己洛谷信息
     洛谷信息 [用户名/id]: 查询指定洛谷用户信息
-    
+
     订阅功能:
     订阅 ?-i [比赛id] ?-e [比赛名称] : 订阅比赛提醒(名称订阅暂时不支持含空格)
     取消/清空订阅 [比赛id] : 取消/清空订阅
     订阅列表: 查看当前订阅
 
-    示例: 比赛 163 10 : 查询洛谷平台10天内的比赛
-    示例: 洛谷信息 123456 : 查询洛谷用户信息
+    示例: 
+    比赛 163 10 : 查询洛谷平台10天内的比赛
+    洛谷信息 123456 : 查询洛谷用户信息
+
+    常用ID对应: 
+    CodeForces -> 1
+    AtCoder -> 93
+    洛谷 -> 163
+    牛客 -> 166
     """,
     homepage="https://github.com/Tabris-ZX/nonebot-plugin-algo.git",
     type="application",
     config=AlgoConfig,
-    supported_adapters={"~onebot.v11"}
+    supported_adapters={"~onebot.v11"},
 )
 
 # 导入命令与事件处理器，完成注册
-from . import command  
-from . import scheduler 
+from . import command  # noqa: F401
+# 导入定时任务模块
+from . import scheduler  # noqa: F401
 

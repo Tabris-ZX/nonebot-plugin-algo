@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import timedelta, datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 from nonebot.log import logger
 from nonebot import require
 require("nonebot_plugin_apscheduler")
@@ -26,6 +26,21 @@ class Subscribe:
         """确保数据目录存在"""
         os.makedirs(os.path.dirname(self.save_path), exist_ok=True)
     
+    @staticmethod
+    def _parse_datetime(dt_str: Union[str, datetime]) -> Optional[datetime]:
+        """统一解析日期时间"""
+        if isinstance(dt_str, datetime):
+            return dt_str
+        if not dt_str:
+            return None
+        try:
+            return datetime.fromisoformat(dt_str)
+        except ValueError:
+            try:
+                return datetime.strptime(dt_str, '%Y-%m-%d %H:%M')
+            except ValueError:
+                return None
+
     def _load_subscribes(self) -> Dict[str, List[Dict]]:
         """加载订阅数据"""
         try:
@@ -67,11 +82,11 @@ class Subscribe:
         subscribe_info = {
             'contest_id': contest_id,
             'event': event,
-            'start_time': start_time.strftime("%Y-%m-%d %H:%M"),
-            'subscribe_time': datetime.now().strftime("%Y-%m-%d %H:%M"),
+            'start_time': start_time.isoformat(),
+            'subscribe_time': datetime.now().isoformat(),
             'user_id': user_id,
             'group_id': group_id,
-            'remind_time': (start_time - timedelta(minutes=algo_config.algo_remind_pre)).strftime("%Y-%m-%d %H:%M"),
+            'remind_time': (start_time - timedelta(minutes=algo_config.algo_remind_pre)).isoformat(),
             'href': href
         }
         
@@ -125,7 +140,8 @@ class Subscribe:
         logger.info(f"比赛提醒: {contest_info['event']}")
         
         # 获取本地时间
-        local_time = datetime.fromisoformat(contest_info['start_time']).strftime('%Y-%m-%d %H:%M')
+        dt = cls._parse_datetime(contest_info['start_time'])
+        local_time = dt.strftime('%Y-%m-%d %H:%M') if dt else str(contest_info['start_time'])
         
         # 构建提醒消息
         message = f"🔔比赛提醒\n\n"
@@ -303,9 +319,11 @@ class Subscribe:
             msg_list = []
             for sub in subscribes:
                 # 解析开始时间并转换为本地时间
-                start_time = datetime.fromisoformat(sub['start_time']).strftime('%Y-%m-%d %H:%M')
+                dt_start = cls._parse_datetime(sub['start_time'])
+                start_time = dt_start.strftime('%Y-%m-%d %H:%M') if dt_start else sub['start_time']
                 # 解析订阅时间
-                subscribe_time = datetime.fromisoformat(sub['subscribe_time']).strftime('%Y-%m-%d %H:%M')
+                dt_sub = cls._parse_datetime(sub['subscribe_time'])
+                subscribe_time = dt_sub.strftime('%Y-%m-%d %H:%M') if dt_sub else sub['subscribe_time']
             
                 msg_list.append(
                     f"🏆比赛名称: {sub['event']}\n"
@@ -366,8 +384,10 @@ class Subscribe:
                 for sub in subscribes:
                     try:
                         # 解析提醒时间
-                        remind_time = datetime.fromisoformat(sub['remind_time'])
-                        
+                        remind_time = cls._parse_datetime(sub['remind_time'])
+                        if not remind_time:
+                            continue
+                            
                         # 检查是否已经过了提醒时间
                         if remind_time.tzinfo is None:
                             now = datetime.now()
@@ -421,7 +441,9 @@ class Subscribe:
                 for sub in list(subscribes):
                     try:
                         # 解析比赛开始时间
-                        start_time = datetime.fromisoformat(sub['start_time'])
+                        start_time = cls._parse_datetime(sub['start_time'])
+                        if not start_time:
+                            continue
                         
                         # 检查比赛是否已经结束（假设比赛持续2小时）
                         end_time = start_time + timedelta(hours=2)

@@ -8,7 +8,7 @@ class Mapper:
         4: "普及+/提高",
         5: "提高+/省选",
         6: "省选/NOI-",
-        7: "NOI/NOI+/CTSC",
+        7: "NOI/CTSC",
     }
 
     # 洛谷用户名颜色

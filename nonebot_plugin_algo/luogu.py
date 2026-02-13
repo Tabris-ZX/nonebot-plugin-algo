@@ -8,23 +8,20 @@ from pathlib import Path
 from collections import Counter
 import html
 from datetime import datetime
+import math
 from .mapper import Mapper
-TEMPLATE_PATH = Path(__file__).parent / "resources" / "lougu_card.html"
+TEMPLATE_PATH = Path(__file__).parent / "resources" / "luogu_card_full.html"
 cards_save_path = luogu_save_path / "cards"
 users_save_path = luogu_save_path / "users.json"
 
-DEFAULT_WIDTH = 610
+DEFAULT_WIDTH = 1170
 DEFAULT_HEIGHT = 950
 
 class Luogu:
     headers = {
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0",
+            "user-agent": "",
             "X-Lentille-Request": "content-only",    
             "x-requested-with": "XMLHttpRequest",
-            # "cookie":algo_config.luogu_cookie,
-            # "x-csrf-token": algo_config.luogu_x_csrf_token,
         }
     base_url = "https://www.luogu.com.cn"
 
@@ -45,6 +42,9 @@ class Luogu:
                     return None
         except httpx.TimeoutException:
             logger.error("网络请求超时")
+            return None
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP状态错误: {e.response.status_code}")
             return None
         except httpx.RequestError as e:
             logger.error(f"网络请求错误: {e}")
@@ -114,17 +114,17 @@ class Luogu:
             user_id = await cls.search_user_id(user)
         if user_id is None:
             return None
-        url = cls.base_url + f"/user/{user_id}/practice"
+        url = cls.base_url + f"/user/{user_id}"
         user_info = await cls.request(url)
         if user_info:
             try:
-                prize_url = cls.base_url + f"/offlinePrize/getList/{user_id}"
+                passed_detail_url = cls.base_url + f"/user/{user_id}/practice"
                 headers = {**cls.headers, "referer": f"{cls.base_url}/user/{user_id}"}
-                prizes = await cls.request(prize_url, headers=headers)
-                if prizes:
-                    user_info['data']['user']['prizes'] = prizes['prizes']
+                passed_detail = await cls.request(passed_detail_url, headers=headers)
+                if passed_detail:
+                    user_info['data']['passed'] = passed_detail['data']['passed']
             except Exception as e:
-                logger.warning(f"获取奖项信息失败: {e}")
+                logger.error("获取通过详情失败")
                 return None
         return user_info
 
@@ -200,33 +200,31 @@ class Luogu:
         #用户部分
         user_info=all_info.get("user",{})
         name = user_info.get("name", "Unknown")
-        badge = user_info.get("badge", "")
+        badge = user_info.get("badge")
         color_key = user_info.get("color", "Gray")
         color = Mapper.luogu_name_color.get(color_key) or "#bbbbbb"
         avatar = user_info.get("avatar", "")
+        background = user_info.get("background","")
         uid = user_info.get("uid", "-")
         slogan = user_info.get("slogan", "")
-        ranking = user_info.get("ranking","--")
-        # passed = user_info.get("passedProblemCount", "--")
-        # submitted = user_info.get("submittedProblemCount", "--")
         following = user_info.get("followingCount", "-")
         followers = user_info.get("followerCount", "-")
-        intro = user_info.get("introduction") if user_info.get("introduction") is not None else "--"
-        email = user_info.get("email") if user_info.get("email") is not None else "--"
+        
+        passed_problem_count = user_info.get("passedProblemCount","")
+        submitted_problem_count = user_info.get("submittedProblemCount","")
         #当前等级分
         if (elo_list := all_info.get('elo')) and len(elo_list) > 0:
             elo = elo_list[0].get('rating', "--")
         else:
-            elo = "--"
+            elo="--"    
         # 徽章文本（若存在则渲染到名字后）
-        badge = user_info.get("badge")
         name_badge = ""
         if badge is not None:
             badge_safe = html.escape(badge)
             name_badge = f"<span class='name-badge' style='background:{color};color:#fff'>{badge_safe}</span>"
         
         # 获奖情况部分
-        prizes = user_info.get("prizes", [])
+        prizes = all_info.get("prizes", [])
         prize_list: list[str] = []
         prize_rows: list[dict] = []
         try:
@@ -255,57 +253,138 @@ class Luogu:
             prize_list = []
             prize_rows = []
 
+
+        # 每日做题详情（用于热力图）
+        daily_counts = all_info.get("dailyCounts", {}) or {}
+        heatmap_rows, weekday_labels, month_labels = cls._build_heatmap(daily_counts)
+
+        # 计算 quality
+        def solve_weights(diff, cnt):
+            return (math.pow(2, diff-1) + math.log2(math.pow(cnt, diff/ 6) + 1)) * cnt
+            
+        quality = 0.00
         # 做题情况部分
-        # submitted_problems_info=all_info.get("submitted",{})
-        # submitted = len(submitted_problems_info)
         passed_problems_info=all_info.get("passed",{})
-        passed = len(passed_problems_info)
-        passed_problems_counter = Counter(p.get("difficulty") for p in passed_problems_info)
-        # 难度顺序：1-7 后跟 -1（未评级放最后）
-        levels = [1, 2, 3, 4, 5, 6, 7, -1]
-        # 颜色映射：1-7 依次 红、橙、黄、绿、蓝、紫、黑；-1 灰
+        passed_difficulty_counter = Counter(p.get("difficulty") for p in passed_problems_info)
+        levels = [1, 2, 3, 4, 5, 6, 7, 0]
+        # 颜色映射：1-7 依次 红、橙、黄、绿、蓝、紫、黑； 灰色为未评级
         level_to_color = Mapper.luogu_problem_level_color
-        counts = [int(passed_problems_counter.get(l, 0)) for l in levels]
+        counts = [int(passed_difficulty_counter.get(l, 0)) for l in levels]
         max_count = max(counts) if any(counts) else 1
         bars = []
         names_map = Mapper.luogu_difficulty_names or {}
         for idx, l in enumerate(levels):
-            c = counts[idx]
-            width = 0 if c == 0 else int(12 + (c / max_count) * 68)
+            cnt = counts[idx]
+            width = 0 if cnt == 0 else int(12 + (cnt / max_count) * 68)
             bars.append({
                 "label": names_map.get(l),
-                "value": c,
+                "value": cnt,
                 "width": width,
                 "color": level_to_color[idx],
             })
-    
+            if cnt > 0 and l > 0:
+                quality += solve_weights(l, cnt)
+        quality/=(passed_problem_count-counts[7]) # 未评级不计入质量
 
         return {
             "name": name,
             "uid": uid,
             "slogan": slogan,
-            # "ranking": ranking,
             "avatar": avatar,
+            "background":background,
             "name_color": color,
             "name_badge": name_badge,
-            "passed": passed,
-            # "submitted": submitted,
+            "passed": passed_problem_count,
             "following": following,
             "followers": followers,
-            "intro": intro,
             "prizes": prize_list,
             "prize_rows": prize_rows,
-            "email": email,
             "elo": elo,
             "diff_bars": bars,
             "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "heatmap_rows": heatmap_rows,
+            "weekday_labels": weekday_labels,
+            "month_labels": month_labels,
+            "quality": round(quality*10,2)
         }
 
-    @classmethod
-    async def get_user_followings(cls, user_id: str):
-        url = cls.base_url + f"/api/user/followings?user={user_id}"
-        pass
-    @classmethod
-    async def get_user_activitys(cls, user_id: str):
-        url = cls.base_url + f"/api/user/activitys?user={user_id}"
-        pass
+    
+    @staticmethod
+    def _build_heatmap(daily_counts: Dict[str, list]) -> tuple[list[list[int]], list[str], list[str]]:
+        """将 daily_counts 构造成 7 行（周日到周六）、N 列的强度矩阵，强度等级 0-6。
+
+        daily_counts 示例：{"2025-07-16": [2,4]}，其中 [0] 为做题数，[1] 为热度。
+        返回：(热力图数据, 星期标签, 月份标签)
+        """
+        from datetime import date, timedelta
+
+        if not daily_counts:
+            return [[0] * 7 for _ in range(7)], ["日", "一", "二", "三", "四", "五", "六"], []
+
+        # 解析日期与热度
+        parsed: dict[date, int] = {}
+        max_heat = 0
+        for ds, arr in daily_counts.items():
+            try:
+                d = date.fromisoformat(ds)
+                heat = int(arr[1]) if isinstance(arr, (list, tuple)) and len(arr) > 1 else 0
+                parsed[d] = heat
+                if heat > max_heat:
+                    max_heat = heat
+            except Exception:
+                continue
+
+        if not parsed:
+            return [[0] * 7 for _ in range(7)], ["日", "一", "二", "三", "四", "五", "六"], []
+
+        min_d = min(parsed.keys())
+        max_d = max(parsed.keys())
+
+        # 对齐到周列：从 min_d 所在周的周日到 max_d 所在周的周六
+        # Python: Monday=0..Sunday=6
+        def to_sunday(d: date) -> date:
+            return d - timedelta(days=(d.weekday() + 1) % 7)
+
+        def to_saturday(d: date) -> date:
+            return d + timedelta(days=(5 - d.weekday()) % 7 + 1)
+
+        start = to_sunday(min_d)
+        end = to_saturday(max_d)
+
+        total_days = (end - start).days + 1
+
+        # 构建列：按天遍历，填充等级
+        # 行顺序：周日(6)、周一(0)、...、周六(5)
+        row_order = [6, 0, 1, 2, 3, 4, 5]
+        weekday_labels = ["日", "一", "二", "三", "四", "五", "六"]
+
+        # 初始化 7 行
+        rows: list[list[int]] = [[] for _ in range(7)]
+        
+        # 生成月份标签
+        month_labels = []
+        current_month = None
+        for i in range(total_days):
+            cur = start + timedelta(days=i)
+            month = cur.month
+            if month != current_month:
+                # 新月份开始，添加月份标签
+                month_labels.append(f"{month}月")
+                current_month = month
+            else:
+                # 同一月份，添加空标签
+                month_labels.append("")
+            
+            heat = parsed.get(cur, 0)
+            if max_heat <= 0 or heat <= 0:
+                level = 0
+            else:
+                ratio = heat / max_heat
+                level = max(1, min(6, int(round(ratio * 6))))
+
+            py_wd = cur.weekday()  # Monday=0..Sunday=6
+            # 映射到我们定义的行索引（周日行在最上）
+            row_index = row_order.index(py_wd)
+            rows[row_index].append(level)
+
+        return rows, weekday_labels, month_labels
