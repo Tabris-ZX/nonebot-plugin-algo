@@ -3,6 +3,7 @@ from nonebot import require, get_driver
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_apscheduler")
+require("nonebot_plugin_uninfo")
 from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna, UniMessage
 from nonebot_plugin_uninfo import Uninfo
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent, MessageSegment,Event
@@ -12,13 +13,6 @@ from .query import Query
 from .subscribe import Subscribe
 from .luogu import Luogu
 from .scheduler import cleanup_luogu_cards
-
-# 查询全部比赛
-# recent_contest = on_alconna(
-#     Alconna("近期比赛"),
-#     priority=5,
-#     block=True,
-# )
 
 # 查询今日比赛
 query_today_contest = on_alconna(
@@ -124,9 +118,9 @@ async def handle_bind_luogu(session:Uninfo,user: str| int):
         await bind_luogu.finish("绑定失败!",reply_to=True)
 
 @my_luogu.handle()
-async def handle_my_luogu(event:Event,session:Uninfo):
+async def handle_my_luogu(session:Uninfo):
     """查询自己的洛谷信息"""
-    user_qq = session.user.id;
+    user_qq = session.user.id
     msg = await Luogu.build_bind_user_info(user_qq)
     if msg is None:
         await UniMessage("你还未绑定洛谷账号捏~").finish(reply_to=True)
@@ -146,12 +140,6 @@ async def handle_luogu_info(user: str| int):
     if msg is None:
         await luogu_info.finish("该用户不存在或未通过实名认证捏~")
     await UniMessage.image(path=msg).finish(reply_to=True)
-
-# @recent_contest.handle()
-# async def handle_all_matcher():
-#     """查询近期比赛"""
-#     msg = await Query.ans_recent_contests()
-#     await recent_contest.finish(msg)
 
 @query_today_contest.handle()
 async def handle_today_match():
@@ -195,7 +183,7 @@ async def handle_subscribe_matcher(
     """处理订阅命令：将当前用户订阅到指定比赛，并在比赛开始前提醒"""
     try:
         group_id, user_id = parse_event_info(event)
-        success, msg = await Subscribe.subscribe_contest(
+        _, msg = await Subscribe.subscribe_contest(
             group_id=group_id,
             id=str(id) if id else None,
             event__regex=event__regex,
@@ -210,7 +198,7 @@ async def handle_unsubscribe_matcher(event: Event, contest_id: int):
     """取消订阅比赛"""
     try:
         group_id, user_id = parse_event_info(event)
-        success, msg = await Subscribe.unsubscribe_contest(
+        _, msg = await Subscribe.unsubscribe_contest(
             group_id=group_id,
             contest_id=str(contest_id),
             user_id=user_id,
@@ -234,7 +222,7 @@ async def handle_clear_subscribes(event: Event):
     """清空当前的所有订阅"""
     try:
         group_id, user_id = parse_event_info(event)
-        success, msg = await Subscribe.clear_subscribes(group_id, user_id)
+        _, msg = await Subscribe.clear_subscribes(group_id, user_id)
         await clear_subscribes.finish(msg)
     except ValueError as e:
         await clear_subscribes.finish(str(e))
@@ -245,10 +233,9 @@ async def restore_scheduled_jobs():
     """Bot启动时恢复所有定时任务"""
     try:
         restored_count = await Subscribe.restore_scheduled_jobs()
-        logger.info(f"算法比赛助手启动完成，恢复了 {restored_count} 个定时任务")
+        logger.info(f"AlgoHelper启动完成，恢复了 {restored_count} 个定时任务")
     except Exception as e:
         logger.error(f"恢复定时任务失败: {e}")
-
 
 def parse_event_info(event: Event) -> tuple[str, str]:
     """解析事件信息，返回group_id和user_id"""

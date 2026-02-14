@@ -1,4 +1,3 @@
-import asyncio
 import shutil
 from pathlib import Path
 from nonebot import require, get_bot
