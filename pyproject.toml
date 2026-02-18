@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-algo"
-version = "0.2.5"
+version = "0.2.6"
 description = "NoneBot2 插件:算法比赛助手. 支持各大oj比赛与题目查询,洛谷用户信息查询与绑定"
 authors = ["Tabris_ZX <3146463122@qq.com>"]
 readme = "README.md"
