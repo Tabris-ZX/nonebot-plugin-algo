@@ -26,9 +26,11 @@ __plugin_meta__ = PluginMetadata(
 
     常用ID对应: 
     CodeForces -> 1
+    CodeChef -> 2
     AtCoder -> 93
-    洛谷 -> 163
+    洛谷 -> 162
     牛客 -> 166
+    
     """,
     homepage="https://github.com/Tabris-ZX/nonebot-plugin-algo.git",
     type="application",
