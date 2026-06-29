@@ -4,15 +4,17 @@ require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
 require("nonebot_plugin_apscheduler")
 require("nonebot_plugin_uninfo")
+from arclet.alconna import Arparma
 from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna, UniMessage
 from nonebot_plugin_uninfo import Uninfo
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent, MessageSegment,Event
 from nonebot.log import logger
 from .config import algo_config
-from .query import Query
+from .query import Query as ContestQuery
 from .subscribe import Subscribe
-from .luogu import Luogu
-from .scheduler import cleanup_luogu_cards
+from .oj.luogu import Luogu
+from .oj.cf import Codeforces
+from .scheduler import cleanup_luogu_cards, cleanup_cf_cards
 
 # 查询今日比赛
 query_today_contest = on_alconna(
@@ -45,8 +47,7 @@ query_conditions_problem = on_alconna(
 subscribe_contests = on_alconna(
     Alconna(
         "订阅",
-        Option("-i", Args["id?", int]),
-        Option("-e", Args["event__regex?", str]),
+        Args["id", int],
     ),
     aliases={"订阅比赛"},
     priority=5,
@@ -79,9 +80,11 @@ clear_subscribes = on_alconna(
 )
 
 luogu_info = on_alconna(
-    Alconna("洛谷信息",
+    Alconna("/洛谷",
+        Option("-f"),
         Args["user", str | int],
     ),
+    aliases={"/lg"},
     priority=5,
     block=True,
 )
@@ -90,23 +93,90 @@ bind_luogu = on_alconna(
     Alconna("绑定洛谷",
         Args["user", str | int],
     ),
-    aliases={"洛谷绑定"},
+    aliases={"洛谷绑定","绑定lg","lg绑定"},
     priority=5,
     block=True,
 )
 
 my_luogu = on_alconna(
-    Alconna("我的洛谷"),
+    Alconna("我的洛谷", Option("-f")),
     priority=5,
     block=True,
 )
 
-clear_luogu_cards = on_alconna(
-    Alconna("清空洛谷卡片"),
-    aliases={"清空洛谷"},
+# cf指令
+cf_info = on_alconna(
+    Alconna("/cf",
+        Option("-f"),
+        Args["handle", str],
+    ),
     priority=5,
     block=True,
 )
+
+bind_cf = on_alconna(
+    Alconna("绑定cf",
+        Args["handle", str],
+    ),
+    aliases={"cf绑定"},
+    priority=5,
+    block=True,
+)
+
+my_cf = on_alconna(
+    Alconna("我的cf", Option("-f")),
+    priority=5,
+    block=True,
+)
+
+clear_cards = on_alconna(
+    Alconna("清空卡片"),
+    aliases={"清理卡片"},
+    priority=5,
+    block=True,
+)
+
+@clear_cards.handle()
+async def handle_clear_cards():
+    """清空所有卡片缓存"""
+    await cleanup_luogu_cards()
+    await cleanup_cf_cards()
+    await clear_cards.finish("已清空所有卡片缓存")
+
+@bind_cf.handle()
+async def handle_bind_cf(session: Uninfo, handle: str):
+    """绑定 CF 用户"""
+    user_qq = session.user.id
+    result = await Codeforces.bind_cf_user(str(user_qq), handle)
+    if isinstance(result, str):
+        await bind_cf.finish(result, reply_to=True)
+    if result:
+        await bind_cf.finish(f"绑定 CF 用户 {handle} 成功!", reply_to=True)
+    else:
+        await bind_cf.finish(f"绑定失败! 用户 {handle} 不存在或网络错误.", reply_to=True)
+
+@my_cf.handle()
+async def handle_my_cf(session: Uninfo, params: Arparma):
+    """查询自己的 CF 信息"""
+    user_qq = session.user.id
+    cards = await Codeforces.build_bind_user_info(str(user_qq))
+    if isinstance(cards, str):
+        await UniMessage(cards).finish(reply_to=True)
+    if cards is None:
+        await UniMessage("你还未绑定 CF 账号捏~\n发送「绑定cf <handle>」来绑定吧~").finish(reply_to=True)
+    full_card, sample_card = cards
+    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish(reply_to=True)
+
+@cf_info.handle()
+async def handle_cf_info(handle: str, params: Arparma):
+    """查询指定 CF 用户信息"""
+    cards = await Codeforces.build_user_info(handle)
+    if isinstance(cards, str):
+        await cf_info.finish(cards)
+    if cards is None:
+        await cf_info.finish(f"用户 {handle} 不存在或网络请求失败捏~")
+    full_card, sample_card = cards
+    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish()
 
 @bind_luogu.handle()
 async def handle_bind_luogu(session:Uninfo,user: str| int):
@@ -118,33 +188,28 @@ async def handle_bind_luogu(session:Uninfo,user: str| int):
         await bind_luogu.finish("绑定失败!",reply_to=True)
 
 @my_luogu.handle()
-async def handle_my_luogu(session:Uninfo):
+async def handle_my_luogu(session:Uninfo, params: Arparma):
     """查询自己的洛谷信息"""
     user_qq = session.user.id
-    msg = await Luogu.build_bind_user_info(user_qq)
-    if msg is None:
+    cards = await Luogu.build_bind_user_info(user_qq)
+    if cards is None:
         await UniMessage("你还未绑定洛谷账号捏~").finish(reply_to=True)
-    await UniMessage.image(path=msg).finish(reply_to=True)
-
-@clear_luogu_cards.handle()
-async def handle_clear_luogu_cards():
-    """清空洛谷卡片缓存"""
-    await cleanup_luogu_cards()
-    await clear_luogu_cards.finish(f"已清空洛谷卡片缓存！")
-
+    full_card, sample_card = cards
+    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish(reply_to=True)
 
 @luogu_info.handle()
-async def handle_luogu_info(user: str| int):
+async def handle_luogu_info(user: str| int, params: Arparma):
     """查询指定用户洛谷信息"""
-    msg = await Luogu.build_user_info(user)
-    if msg is None:
+    cards = await Luogu.build_user_info(user)
+    if cards is None:
         await luogu_info.finish("该用户不存在或未通过实名认证捏~")
-    await UniMessage.image(path=msg).finish(reply_to=True)
+    full_card, sample_card = cards
+    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish()
 
 @query_today_contest.handle()
 async def handle_today_match():
     """查询今日比赛"""
-    msg = await Query.ans_today_contests()
+    msg = await ContestQuery.ans_today_contests()
     await query_today_contest.finish(msg)
 
 @query_conditions_contest.handle()
@@ -160,7 +225,7 @@ async def handle_match_id_matcher(
     days: 查询天数
     """
 
-    msg = await Query.ans_conditions_contest(
+    msg = await ContestQuery.ans_conditions_contest(
         resource_id=resource_id,
         days=days,
     )
@@ -171,22 +236,20 @@ async def handle_problem_matcher(
     contest_ids: int,
 ):
     """按条件检索题目"""
-    msg = await Query.ans_conditions_problem(contest_ids)
+    msg = await ContestQuery.ans_conditions_problem(contest_ids)
     await query_conditions_problem.finish(msg)
 
 @subscribe_contests.handle()
 async def handle_subscribe_matcher(
     event: Event,
-    id=None,  # 比赛id
-    event__regex=None,  # 比赛名称
+    id: int,  # 比赛id
 ):
     """处理订阅命令：将当前用户订阅到指定比赛，并在比赛开始前提醒"""
     try:
         group_id, user_id = parse_event_info(event)
         _, msg = await Subscribe.subscribe_contest(
             group_id=group_id,
-            id=str(id) if id else None,
-            event__regex=event__regex,
+            id=str(id),
             user_id=user_id,
         )
         await subscribe_contests.finish(msg)
@@ -245,4 +308,3 @@ def parse_event_info(event: Event) -> tuple[str, str]:
         return "null", str(event.user_id)
     else:
         raise ValueError("不支持的聊天类型")
-

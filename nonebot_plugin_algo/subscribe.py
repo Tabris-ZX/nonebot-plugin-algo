@@ -191,16 +191,12 @@ class Subscribe:
     async def subscribe_contest(
         cls,
         group_id: str,
-        id: Optional[str] = None,  # 比赛id
-        event__regex: Optional[str] = None,  # 比赛名称
+        id: str,  # 比赛id
         user_id: Optional[str] = None  # 用户id
     ) -> tuple[bool, str]:
         """订阅比赛"""
-        if id is None and event__regex is None:
-            return False, "请提供比赛ID或比赛名称"
-        
         try:
-            contest_info = await Util.get_contest_info(id=id, event__regex=event__regex)
+            contest_info = await Util.get_contest_info(id=id)
             logger.info(f"比赛信息: {contest_info}")
             if isinstance(contest_info, int) or contest_info is None or not contest_info:
                 return False, "未找到相关比赛"
@@ -476,4 +472,3 @@ class Subscribe:
         except Exception as e:
             logger.exception(f"清理过期订阅失败: {e}")
             return 0
-

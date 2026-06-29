@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codeforces Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>{{ full_style }}</style>
+</head>
+
+<body class="cf-card">
+  <div class="canvas" style="--rank_color: {{ rank_color }};">
+    <div class="bg-user"></div>
+    <div class="bg-grid"></div>
+    <img class="cf-logo" src="{{ logo_src }}" alt="Codeforces" />
+
+    <div class="main-content">
+      <div class="profile-header">
+        <div class="identity-badge">
+          <div class="avatar-wrap">
+            <div class="avatar-ring"></div>
+            {% if avatar %}
+            <img class="avatar" src="{{ avatar }}" alt="" />
+            {% else %}
+            <div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,0.45);font-weight:800;">CF</div>
+            {% endif %}
+          </div>
+          <div class="header-info">
+            <div class="handle-row">
+              <span class="handle-name">{{ name_styled|safe }}</span>
+            </div>
+            {% if display_name != handle %}
+            <div class="real-name">{{ display_name }}</div>
+            {% endif %}
+            <div class="header-meta">
+              {% if organization %}<span>🏛 {{ organization }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="col-left">
+          {% if heatmap_rows %}
+          <div class="panel">
+            <div class="panel-title">📅 Activity Heatmap</div>
+            <div class="cf-heatmap">
+              <div class="heatmap-months">
+                {% for m in heatmap_months %}
+                <span class="heatmap-month" style="left: {{ m.left }};">{{ m.label }}</span>
+                {% endfor %}
+              </div>
+              <div class="heatmap-labels">
+                <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+              </div>
+              <div class="cf-heatmap-grid">
+                {% for row in heatmap_rows %}
+                <div class="cf-heatmap-row">
+                  {% for lv in row %}
+                  <span class="heatmap-cell lv-{{ lv }}"></span>
+                  {% endfor %}
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="panel">
+            <div class="panel-title">📈 Rating History</div>
+            {% if chart_points and chart_points|length > 1 %}
+            {% set last_pt = chart_points[-1] %}
+            <div class="chart-wrap">
+              <svg class="chart-svg" viewBox="0 0 760 260" preserveAspectRatio="none">
+                {% for band in rating_bands %}
+                <rect x="{{ band.x }}" y="{{ band.y }}" width="{{ band.width }}" height="{{ band.height }}" fill="{{ band.color }}" opacity="0.9" />
+                {% endfor %}
+                {% for tick in chart_y_ticks %}
+                <line x1="58" y1="{{ tick.y }}" x2="742" y2="{{ tick.y }}" class="chart-grid-line" />
+                <text x="50" y="{{ tick.y + 6 }}" class="chart-y-label">{{ tick.value }}</text>
+                {% endfor %}
+                {% for tick in chart_x_ticks %}
+                <line x1="{{ tick.x }}" y1="18" x2="{{ tick.x }}" y2="224" class="chart-grid-line" />
+                <text x="{{ tick.x }}" y="248" class="chart-x-label">{{ tick.label }}</text>
+                {% endfor %}
+                <line x1="58" y1="224" x2="742" y2="224" class="chart-axis-line" />
+                <line x1="58" y1="18" x2="58" y2="224" class="chart-axis-line" />
+                <polyline class="chart-line" points="{{ polyline_points }}" />
+                {% for p in chart_points %}
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4.2" class="chart-dot" />
+                {% endfor %}
+                <circle cx="{{ last_pt.x }}" cy="{{ last_pt.y }}" r="5" class="chart-last-dot" />
+              </svg>
+            </div>
+            {% else %}
+            <div class="chart-wrap" style="display:flex;align-items:center;justify-content:center;color:#555;font-size:14px;">
+              No rating data available
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-right">
+          <div class="panel">
+            <div class="panel-title">📋 Statistics</div>
+            <div class="stats-grid">
+              <div class="stat-cell">
+                <div class="label">Rating</div>
+                <div class="rating-pair">
+                  <div class="rating-pair-item">
+                    <div class="mini-label">Current</div>
+                    <div class="value">{{ rating }}</div>
+                    <div class="value-sm">{{ rank_display }}</div>
+                  </div>
+                  <div class="rating-pair-item">
+                    <div class="mini-label">Max</div>
+                    <div class="value">{{ max_rating }}</div>
+                    <div class="value-sm">{{ max_rank_display }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="stat-cell">
+                <div class="label">Registered</div>
+                <div class="value-sm">{{ registration_str or '—' }}</div>
+              </div>
+              <div class="stat-cell">
+                <div class="label">Friends</div>
+                <div class="value">{{ friend_of_count }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">🏁 Recent Contests</div>
+            <div class="contest-list">
+              {% if recent_contests %}
+              {% for rc in recent_contests %}
+              <div class="contest-row">
+                <span class="contest-name" title="{{ rc.contest_name }}">{{ rc.contest_name }}</span>
+                <span class="contest-rank">#{{ rc.rank }}</span>
+                <span class="contest-delta {% if rc.delta > 0 %}delta-positive{% elif rc.delta < 0 %}delta-negative{% else %}delta-zero{% endif %}">
+                  {{ '+' if rc.delta > 0 else '' }}{{ rc.delta }}
+                </span>
+              </div>
+              {% endfor %}
+              {% else %}
+              <div style="text-align:center;color:var(--text-muted);padding:16px 0;font-size:13px;">
+                No contests recorded yet
+              </div>
+              {% endif %}
+            </div>
+            <div class="contest-note">Total contests: {{ contest_count }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <span>{{ current_time }}</span>
+        <span>Created by Tabris-ZX</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

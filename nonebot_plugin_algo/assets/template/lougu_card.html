@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luogu Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>{{ full_style }}</style>
+</head>
+
+<body class="luogu-card">
+  <div class="canvas" style="--name_color: {{ name_color }};">
+
+    <!-- 背景层 -->
+    <div class="bg-layer">
+    </div>
+    {% if background %}
+    <div class="bg-user"></div>
+    <div class="bg-overlay"></div>
+    {% endif %}
+
+    <!-- Logo -->
+    <img class="logo" src="{{ logo_src }}" alt="Luogu" />
+
+    <div class="main-content">
+
+      <!-- 头像 & 名字 -->
+      <div class="profile-header">
+        <div class="identity-badge">
+          <div class="avatar-wrap">
+            <div class="avatar-glow"></div>
+            {% if avatar %}
+            <img class="avatar" src="{{avatar}}" alt="" />
+            {% else %}
+            <div class="avatar" style="display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,0.72);font-weight:900;">LG</div>
+            {% endif %}
+          </div>
+          <div class="profile-main">
+            <div class="name-row">
+              <span class="name">{{ name_styled|safe }}</span>
+              {% if name_badge %}{{ name_badge|safe }}{% endif %}
+            </div>
+            {% if slogan %}
+            <div class="slogan">{{slogan}}</div>
+            {% endif %}
+            <div class="uid-inline">UID: {{uid}}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 内容主网格 -->
+      <div class="content-grid">
+
+        <!-- 左栏 -->
+        <div class="col-left">
+
+          <!-- 热力图 -->
+          <div class="panel">
+            <div class="panel-title">📅 Activity Heatmap</div>
+            <div class="heatmap-body">
+              <div class="heatmap">
+                {% if heatmap_rows and weekday_labels %}
+                {% for i in range(heatmap_rows|length) %}
+                {% set row = heatmap_rows[i] %}
+                <div class="heatmap-row">
+                  <div class="day-label">{{ weekday_labels[i] }}</div>
+                  <div class="heatmap-grid">
+                    {% for lv in row %}
+                    <div class="heatmap-cell lv-{{ lv }}"></div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="heatmap-row">
+                  <div class="day-label">日</div>
+                  <div class="heatmap-grid">
+                    <div class="heatmap-cell lv-0"></div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- 难度分布 -->
+          <div class="panel">
+            <div class="panel-title">📊 Problem Difficulty</div>
+            <div class="diff-bars">
+              {% for b in diff_bars %}
+              <div class="diff-row">
+                <span class="diff-label">{{ b.label }}</span>
+                <div class="diff-track">
+                  <div class="diff-fill" style="width:{{ b.width }}%;background:{{ b.color }};"></div>
+                </div>
+                <span class="diff-value">{{ b.value }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右栏 -->
+        <div class="col-right">
+
+          <div class="panel">
+            <div class="panel-title">📋 Statistics</div>
+            <div class="stats-grid">
+              <div class="stat-cell">
+                <div class="label">✅ Passed</div>
+                <div class="value">{{passed}}</div>
+              </div>
+              <div class="stat-cell">
+                <div class="label">⚔️ Rating</div>
+                <div class="value">{{elo}}</div>
+              </div>
+              <div class="stat-cell">
+                <div class="label">👥 Follow</div>
+                <div class="value-sm">{{following}} / {{followers}}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">🏅 Prizes</div>
+            <div class="prizes-list">
+              {% if prize_rows and prize_rows|length > 0 %}
+              {% for r in prize_rows[:5] %}
+              <div class="prize-row">
+                <span class="prize-left">{{ r.left }}</span>
+                <span class="prize-right">{{ r.right_html|safe }}</span>
+              </div>
+              {% endfor %}
+              {% else %}
+              <div style="text-align:center;color:var(--text-muted);padding:16px 0;font-size:13px;">
+                No prizes recorded yet
+              </div>
+              {% endif %}
+            </div>
+            <div class="prize-note">Total prizes: {{ prize_total or 0 }}</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 页脚 -->
+      <div class="footer">
+        <span>{{ current_time }}</span>
+        <span>Created by Tabris-ZX</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

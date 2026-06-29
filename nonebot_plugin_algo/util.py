@@ -58,13 +58,11 @@ class Util:
         days=None, 
         resource_id=None, 
         id=None, 
-        event__regex=None,
     ) -> dict:
         #当前时间
         if days is None:
             base_params = {
                 "id": id,
-                "event__regex": event__regex,
                 **algo_config.default_params,
             }
         else:
@@ -109,9 +107,8 @@ class Util:
     async def get_contest_info(
         cls,
         id=None, #比赛id
-        event__regex=None #比赛名称
     ) -> Union[List[Dict], int]:
-        params = cls.build_contest_params(id=id, event__regex=event__regex)
+        params = cls.build_contest_params(id=id)
         return await cls._make_request("https://clist.by/api/v4/contest/", params)
 
     @classmethod

@@ -10,91 +10,55 @@
 
 <div align="center">
 
-# 🏆 算法比赛助手
+# 算法比赛助手
 
-_✨ 基于 NoneBot2 的算法比赛查询与订阅助手，支持洛谷用户信息查询 ✨_
+_基于 NoneBot2 的算法比赛查询、订阅提醒与 OJ 用户信息卡片插件_
 
 <a href="./LICENSE">
-    <img src="https://img.shields.io/github/license/Tabris-ZX/nonebot-plugin-algo.svg" alt="license">
+  <img src="https://img.shields.io/github/license/Tabris-ZX/nonebot-plugin-algo.svg" alt="license">
 </a>
 <a href="https://pypi.python.org/pypi/nonebot-plugin-algo">
-    <img src="https://img.shields.io/pypi/v/nonebot-plugin-algo.svg" alt="pypi">
+  <img src="https://img.shields.io/pypi/v/nonebot-plugin-algo.svg" alt="pypi">
 </a>
 <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="python">
 <a href="https://github.com/nonebot/nonebot2">
-    <img src="https://img.shields.io/badge/nonebot-2.4.3+-red.svg" alt="nonebot2">
+  <img src="https://img.shields.io/badge/nonebot-2.4.3+-red.svg" alt="nonebot2">
 </a>
 
 </div>
 
-## 📖 简介
+## 简介
 
-基于 **NoneBot2** 与 **clist.by API** 开发的智能算法比赛助手插件，同时支持洛谷用户信息查询与绑定功能。
+`nonebot-plugin-algo` 是一个面向算法竞赛群和个人机器人的 NoneBot2 插件，支持通过 clist.by 查询比赛与题目，订阅比赛开始提醒，并生成洛谷、Codeforces 用户信息卡片。
 
-> ⚠️ **使用前提**：需要申请 [clist.by API](https://clist.by/api/v4/doc/) 凭据才能正常使用比赛查询功能
+比赛查询功能依赖 [clist.by API](https://clist.by/api/v4/doc/)，使用前需要准备 `clist_username` 和 `clist_api_key`。用户卡片截图依赖 Playwright 浏览器运行环境。
 
-🎯 **核心功能**：
+## 功能
 
-- 🔍 **智能查询**：今日/近期比赛、平台筛选、题目检索
-- 🔔 **订阅提醒**：个性化比赛提醒，支持群聊/私聊
-- 💾 **持久化存储**：订阅数据本地保存，重启不丢失
-- 🌐 **多平台支持**：涵盖 Codeforces、AtCoder、洛谷等主流平台
-- 🏆 **洛谷服务**：用户信息查询、绑定管理、精美卡片展示
+- 查询今日、近期比赛，支持按 OJ 平台 ID 和天数筛选
+- 查询指定比赛的题目信息
+- 订阅比赛提醒，支持群聊和私聊场景
+- 查询、绑定洛谷用户，支持简略卡片和详细卡片
+- 查询、绑定 Codeforces 用户，展示 rating、提交热力图、近期比赛等信息
+- 使用本地存储保存订阅数据、用户绑定数据和卡片缓存
 
-## ✨ 功能特性
+## 安装
 
-### 🔍 比赛查询功能
-
-| 命令                     | 功能              | 示例            |
-| ------------------------ | ----------------- | --------------- |
-| `近期比赛` / `近期`  | 查询近期比赛      | `近期比赛`    |
-| `今日比赛` / `今日`  | 查询今日比赛      | `今日比赛`    |
-| `比赛 [平台id] [天数]` | 条件检索比赛      | `比赛 162 10` |
-| `题目 [比赛id]`        | 查询比赛题目      | `题目 123456` |
-
-> 💡 **平台ID说明**：162-洛谷，1-Codeforces，2-CodeChef 等，详见 [clist.by](https://clist.by/resources/)
-
-### 🏆 洛谷服务功能
-
-| 命令                        | 功能             | 示例                          |
-| --------------------------- | ---------------- | ----------------------------- |
-| `绑定洛谷 [用户名/id]`     | 绑定洛谷用户     | `绑定洛谷 123456`            |
-| `我的洛谷`                  | 查询自己洛谷信息 | `我的洛谷`                   |
-| `洛谷信息 [用户名/id]`     | 查询指定用户信息 | `洛谷信息 123456`           |
-
-### 🔔 订阅提醒功能 ⭐
-
-| 命令                        | 功能             | 示例                          |
-| --------------------------- | ---------------- | ----------------------------- |
-| `订阅 -i [比赛id]`         | 通过ID订阅比赛   | `订阅 -i 123456`             |
-| `取消订阅 [比赛id]`       | 取消指定订阅     | `取消订阅 123456`           |
-| `订阅列表` / `我的订阅` | 查看订阅列表     | `订阅列表`                  |
-| `清空订阅`                | 清空所有订阅     | `清空订阅`                  |
-<!-- | `订阅 -e [比赛名称]`       | 通过名称订阅比赛 | `订阅 -e "Codeforces"` | -->
-
-## 🚀 快速开始
-
-> 🚨 **开始前必读**：本插件依赖 clist.by API，请先完成 API 凭据申请，否则无法正常使用！
-
-### 📦 安装插件
-
-<details>
-<summary>🎯 方式一：使用 nb-cli（推荐）</summary>
+### 使用 nb-cli
 
 ```bash
 nb plugin install nonebot-plugin-algo
 ```
 
-</details>
-
-<details>
-<summary>📚 方式二：使用包管理器</summary>
+### 使用 uv
 
 ```bash
-# 使用 poetry（推荐）
-poetry add nonebot-plugin-algo
+uv add nonebot-plugin-algo
+```
 
-# 使用 pip
+### 使用 pip
+
+```bash
 pip install nonebot-plugin-algo
 ```
 
@@ -105,100 +69,163 @@ pip install nonebot-plugin-algo
 plugins = ["nonebot_plugin_algo"]
 ```
 
-</details>
+如果需要生成洛谷或 Codeforces 信息卡片，还需要安装 Playwright Chromium：
 
-### ⚙️ 配置设置
+```bash
+uv run playwright install chromium
+```
 
-> ⚠️ **重要提示**：本插件需要 clist.by API 凭据才能正常工作，请务必先申请！
+非 `uv` 环境可以使用：
 
-<details>
-<summary>🔧 配置说明</summary>
+```bash
+python -m playwright install chromium
+```
 
-**第一步：申请 API 凭据**
-1. 访问 [clist.by](https://clist.by/api/v4/doc/) 注册账号
-2. 在个人设置中生成 API Key
-3. 将凭据添加到 `.env` 文件中
+## 配置
 
-**第二步：配置文件**
-在 `.env` 文件中添加配置：
+在 NoneBot 项目的 `.env` 或 `.env.*` 中添加配置：
 
 ```env
-# ========== 必需配置 ==========
-# clist.by API 凭据（必须配置才能使用比赛查询功能）
-clist_username=your_username    # 你的 clist.by 用户名
-clist_api_key=your_api_key      # 你的 clist.by API Key
+# clist.by API 凭据，使用比赛查询和题目查询时必需
+clist_username=your_username
+clist_api_key=your_api_key
 
-# ========== 可选配置 ==========
-# 比赛查询配置
-algo_days=7                    # 查询近期天数（默认：7天）
-algo_limit=20                  # 返回数量上限（默认：20条）
-algo_remind_pre=30             # 提醒提前时间，单位：分钟（默认：30分钟）
-algo_order_by=start            # 排序字段（默认：start，按开始时间排序）
+# 可选配置
+algo_days=7
+algo_limit=20
+algo_remind_pre=30
+algo_order_by=start
+oj_include=[1,93,163,166,102]
 ```
 
-**配置项说明：**
-- **必需配置**：`clist_username` 和 `clist_api_key` 必须正确配置
-- **洛谷Cookie**：仅在需要查询隐私设置用户时配置，普通查询无需此项
-- **数据存储**：插件会自动在本地创建数据目录存储订阅信息和洛谷卡片缓存
+配置项说明：
 
-> 💡 **提示**：洛谷卡片缓存会在每天 2:00、10:00、18:00 自动清理
-</details>
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `clist_username` | 空 | clist.by 用户名 |
+| `clist_api_key` | 空 | clist.by API Key |
+| `oj_include` | `[1,93,163,166,102]` | 默认查询的平台 ID 列表 |
+| `algo_days` | `7` | 近期比赛默认查询天数 |
+| `algo_limit` | `20` | clist.by API 返回数量上限 |
+| `algo_remind_pre` | `30` | 比赛开始前多少分钟提醒 |
+| `algo_order_by` | `start` | clist.by 排序字段 |
 
-## 📖 使用示例
+常用 clist.by 平台 ID：
 
-### 🔍 比赛查询功能演示
+| 平台 | ID |
+| --- | --- |
+| Codeforces | `1` |
+| AtCoder | `93` |
+| 洛谷 | `162` |
+| 牛客 | `166` |
+
+## 命令
+
+### 比赛查询
+
+| 命令 | 功能 | 示例 |
+| --- | --- | --- |
+| `今日比赛` | 查询今天未开始的比赛 | `今日比赛` |
+| `近期比赛 [平台ID] [天数]` | 查询近期比赛，可选平台和天数 | `近期比赛 162 10` |
+| `比赛题目 [比赛ID]` | 查询指定比赛题目 | `比赛题目 123456` |
+
+### 订阅提醒
+
+| 命令 | 功能 | 示例 |
+| --- | --- | --- |
+| `订阅 [比赛ID]` / `订阅比赛 [比赛ID]` | 订阅比赛提醒 | `订阅 123456` |
+| `取消订阅 [比赛ID]` | 取消指定比赛订阅 | `取消订阅 123456` |
+| `订阅列表` / `我的订阅` | 查看当前会话的订阅列表 | `订阅列表` |
+| `清空订阅` | 清空当前会话的订阅 | `清空订阅` |
+
+### 洛谷
+
+| 命令 | 功能 | 示例 |
+| --- | --- | --- |
+| `绑定洛谷 [用户名或ID]` | 绑定洛谷账号 | `绑定洛谷 123456` |
+| `我的洛谷` | 查询已绑定洛谷账号的简略卡片 | `我的洛谷` |
+| `我的洛谷 -f` | 查询已绑定洛谷账号的详细卡片 | `我的洛谷 -f` |
+| `/洛谷 [用户名或ID]` / `/lg [用户名或ID]` | 查询指定洛谷用户简略卡片 | `/lg 123456` |
+| `/洛谷 -f [用户名或ID]` / `/lg -f [用户名或ID]` | 查询指定洛谷用户详细卡片 | `/lg -f 123456` |
+
+别名：`洛谷绑定`、`绑定lg`、`lg绑定` 等同于 `绑定洛谷`。
+
+### Codeforces
+
+| 命令 | 功能 | 示例 |
+| --- | --- | --- |
+| `绑定cf [handle]` | 绑定 Codeforces 账号 | `绑定cf tourist` |
+| `我的cf` | 查询已绑定 CF 账号的简略卡片 | `我的cf` |
+| `我的cf -f` | 查询已绑定 CF 账号的详细卡片 | `我的cf -f` |
+| `/cf [handle]` | 查询指定 CF 用户简略卡片 | `/cf tourist` |
+| `/cf -f [handle]` | 查询指定 CF 用户详细卡片 | `/cf -f tourist` |
+
+别名：`cf绑定` 等同于 `绑定cf`。
+
+### 缓存
+
+| 命令 | 功能 |
+| --- | --- |
+| `清空卡片` / `清理卡片` | 清空洛谷和 Codeforces 卡片缓存 |
+
+卡片缓存会在每天 `02:00`、`10:00`、`18:00` 自动清理。
+
+## 开发
+
+本项目使用 `uv` 管理依赖和锁文件。
 
 ```bash
-# 基础查询
-近期比赛          # 查询近期比赛
-今日比赛          # 查询今日比赛
-比赛 162 10       # 查询洛谷平台10天内的比赛
-题目 123456       # 查询比赛ID为123456的题目
+# 安装项目依赖和开发依赖
+uv sync --all-groups
+
+# 安装 Playwright Chromium
+uv run playwright install chromium
+
+# 运行代码检查
+uv run ruff check .
+
+# 格式化
+uv run black .
+uv run isort .
+
+# 构建发行包
+uv build
 ```
 
-### 🏆 洛谷服务功能演示
+如果只想安装运行依赖：
 
 ```bash
-# 洛谷用户操作
-绑定洛谷 123456              # 绑定洛谷用户ID
-绑定洛谷 "用户名"            # 绑定洛谷用户名
-我的洛谷                    # 查询自己的洛谷信息
-洛谷信息 123456             # 查询指定用户信息
-洛谷信息 "用户名"            # 查询指定用户名信息
+uv sync
 ```
 
-### 🔔 订阅功能演示
+## 项目结构
 
-```bash
-# 订阅操作
-订阅 -i 123456                   # 通过比赛ID订阅
-订阅 -e Codeforces               # 通过名称订阅
-订阅列表                         # 查看订阅列表
-取消订阅 123456                  # 取消指定订阅
-清空订阅                         # 清空所有订阅
+```text
+nonebot_plugin_algo/
+  command.py          # NoneBot 命令入口
+  config.py           # 插件配置和本地存储路径
+  query.py            # 比赛与题目查询响应
+  subscribe.py        # 比赛订阅、提醒和恢复任务
+  scheduler.py        # 卡片缓存清理任务
+  util.py             # clist.by API 请求工具
+  oj/
+    luogu/            # 洛谷 API 与卡片生成
+    cf/               # Codeforces API 与卡片生成
+  assets/             # 卡片模板、样式和图片资源
 ```
-## 🎯 功能路线图
 
-### todo list
+## 路线图
 
-- [X] **比赛查询系统** - 支持今日/近期比赛查询
-- [X] **条件检索** - 按平台、时间筛选比赛
-- [X] **题目查询** - 根据比赛ID查询题目信息
-- [X] **订阅提醒系统** - 智能比赛订阅与定时提醒
-- [X] **洛谷用户绑定** - 支持用户名和ID绑定
-- [X] **洛谷信息查询** - 洛谷用户详细信息查询
-- [ ] **cf信息查询** - cf用户详细信息查询
-- [ ] **atc信息查询** - atc用户详细信息查询
-- [ ] **个性题单** - 用户自建个性题单
-- [ ] **题目链接解析** - 题目链接自动解析出题面,IO样例
+- [x] 比赛查询系统
+- [x] 条件检索比赛
+- [x] 比赛题目查询
+- [x] 订阅提醒系统
+- [x] 洛谷用户绑定与信息卡片
+- [x] Codeforces 用户绑定与信息卡片
+- [ ] AtCoder 用户信息查询
+- [ ] 个性题单
+- [ ] 题目链接解析
 
-## 📄 开源协议
-本项目基于 [MIT License](LICENSE) 开源协议。
+## 开源协议
 
-<div align="center">
-
-### 🌟 如果这个项目对你有帮助，请给个 Star！
-**有任何问题欢迎来提issue!**
-#### 让我们一起让算法竞赛变得更简单！
-
-</div>
+本项目基于 [AGPL-3.0 License](LICENSE) 开源。
