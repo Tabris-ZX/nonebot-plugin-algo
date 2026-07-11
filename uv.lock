@@ -839,9 +839,10 @@ wheels = [
 
 [[package]]
 name = "nonebot-plugin-algo"
-version = "0.3.1"
+version = "0.3.2"
 source = { editable = "." }
 dependencies = [
+    { name = "arclet-alconna" },
     { name = "httpx" },
     { name = "jinja2" },
     { name = "nonebot-adapter-onebot" },
@@ -851,6 +852,7 @@ dependencies = [
     { name = "nonebot-plugin-uninfo" },
     { name = "nonebot2" },
     { name = "playwright" },
+    { name = "pydantic" },
 ]
 
 [package.dev-dependencies]
@@ -862,6 +864,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "arclet-alconna", specifier = ">=1.8.44" },
     { name = "httpx", specifier = ">=0.24" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "nonebot-adapter-onebot", specifier = ">=2.4.6" },
@@ -871,6 +874,7 @@ requires-dist = [
     { name = "nonebot-plugin-uninfo", specifier = ">=0.9.0" },
     { name = "nonebot2", specifier = ">=2.4.3" },
     { name = "playwright", specifier = ">=1.55.0" },
+    { name = "pydantic", specifier = ">=2.0" },
 ]
 
 [package.metadata.requires-dev]
