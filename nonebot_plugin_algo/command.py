@@ -1,4 +1,3 @@
-import sched
 from nonebot import require, get_driver
 require("nonebot_plugin_alconna")
 require("nonebot_plugin_localstore")
@@ -7,7 +6,7 @@ require("nonebot_plugin_uninfo")
 from arclet.alconna import Arparma
 from nonebot_plugin_alconna import Alconna, Args, Option, on_alconna, UniMessage
 from nonebot_plugin_uninfo import Uninfo
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, PrivateMessageEvent, MessageSegment,Event
+from nonebot.adapters.onebot.v11 import Event, GroupMessageEvent, PrivateMessageEvent
 from nonebot.log import logger
 from .config import algo_config
 from .query import Query as ContestQuery
@@ -80,33 +79,32 @@ clear_subscribes = on_alconna(
 )
 
 luogu_info = on_alconna(
-    Alconna("/洛谷",
+    Alconna("洛谷",
         Option("-f"),
         Args["user", str | int],
     ),
-    aliases={"/lg"},
+    aliases={"lg"},
     priority=5,
     block=True,
 )
 
 bind_luogu = on_alconna(
-    Alconna("绑定洛谷",
+    Alconna("bindlg",
         Args["user", str | int],
     ),
-    aliases={"洛谷绑定","绑定lg","lg绑定"},
     priority=5,
     block=True,
 )
 
 my_luogu = on_alconna(
-    Alconna("我的洛谷", Option("-f")),
+    Alconna("mylg", Option("-f")),
     priority=5,
     block=True,
 )
 
 # cf指令
 cf_info = on_alconna(
-    Alconna("/cf",
+    Alconna("cf",
         Option("-f"),
         Args["handle", str],
     ),
@@ -115,16 +113,15 @@ cf_info = on_alconna(
 )
 
 bind_cf = on_alconna(
-    Alconna("绑定cf",
+    Alconna("bindcf",
         Args["handle", str],
     ),
-    aliases={"cf绑定"},
     priority=5,
     block=True,
 )
 
 my_cf = on_alconna(
-    Alconna("我的cf", Option("-f")),
+    Alconna("mycf", Option("-f")),
     priority=5,
     block=True,
 )
@@ -159,24 +156,22 @@ async def handle_bind_cf(session: Uninfo, handle: str):
 async def handle_my_cf(session: Uninfo, params: Arparma):
     """查询自己的 CF 信息"""
     user_qq = session.user.id
-    cards = await Codeforces.build_bind_user_info(str(user_qq))
-    if isinstance(cards, str):
-        await UniMessage(cards).finish(reply_to=True)
-    if cards is None:
+    card = await Codeforces.build_bind_user_info(str(user_qq), full=params.find("f"))
+    if isinstance(card, str):
+        await UniMessage(card).finish(reply_to=True)
+    if card is None:
         await UniMessage("你还未绑定 CF 账号捏~\n发送「绑定cf <handle>」来绑定吧~").finish(reply_to=True)
-    full_card, sample_card = cards
-    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish(reply_to=True)
+    await UniMessage.image(path=card).finish(reply_to=True)
 
 @cf_info.handle()
 async def handle_cf_info(handle: str, params: Arparma):
     """查询指定 CF 用户信息"""
-    cards = await Codeforces.build_user_info(handle)
-    if isinstance(cards, str):
-        await cf_info.finish(cards)
-    if cards is None:
+    card = await Codeforces.build_user_info(handle, full=params.find("f"))
+    if isinstance(card, str):
+        await cf_info.finish(card)
+    if card is None:
         await cf_info.finish(f"用户 {handle} 不存在或网络请求失败捏~")
-    full_card, sample_card = cards
-    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish()
+    await UniMessage.image(path=card).finish()
 
 @bind_luogu.handle()
 async def handle_bind_luogu(session:Uninfo,user: str| int):
@@ -191,20 +186,18 @@ async def handle_bind_luogu(session:Uninfo,user: str| int):
 async def handle_my_luogu(session:Uninfo, params: Arparma):
     """查询自己的洛谷信息"""
     user_qq = session.user.id
-    cards = await Luogu.build_bind_user_info(user_qq)
-    if cards is None:
+    card = await Luogu.build_bind_user_info(user_qq, full=params.find("f"))
+    if card is None:
         await UniMessage("你还未绑定洛谷账号捏~").finish(reply_to=True)
-    full_card, sample_card = cards
-    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish(reply_to=True)
+    await UniMessage.image(path=card).finish(reply_to=True)
 
 @luogu_info.handle()
 async def handle_luogu_info(user: str| int, params: Arparma):
     """查询指定用户洛谷信息"""
-    cards = await Luogu.build_user_info(user)
-    if cards is None:
+    card = await Luogu.build_user_info(user, full=params.find("f"))
+    if card is None:
         await luogu_info.finish("该用户不存在或未通过实名认证捏~")
-    full_card, sample_card = cards
-    await UniMessage.image(path=full_card if params.find("f") else sample_card).finish()
+    await UniMessage.image(path=card).finish()
 
 @query_today_contest.handle()
 async def handle_today_match():

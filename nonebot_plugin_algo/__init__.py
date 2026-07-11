@@ -11,16 +11,16 @@ __plugin_meta__ = PluginMetadata(
     比赛题目 [比赛id] : 查询比赛题目
 
     **洛谷服务:**
-    绑定lg(lg绑定) [用户名/id]: 绑定洛谷用户
-    我的lg :查询自己洛谷信息
-    /lg [用户名/id]: 查询指定用户洛谷简略信息
-    /lg -f [用户名/id]: 查询指定用户洛谷详细信息
+    bindlg [用户名/id]: 绑定洛谷用户
+    mylg:查询自己洛谷信息
+    lg [用户名/id]: 查询指定用户洛谷简略信息
+    lg -f [用户名/id]: 查询指定用户洛谷详细信息
 
     **cf服务:**
-    绑定cf(cf绑定) [uid]: 绑定 CF 用户
-    我的cf : 查询自己 CF 信息
-    /cf [uid]: 查询指定用户cf简略信息
-    /cf -f [uid] 查询指定用户cf详细信息
+    bindcf [uid]: 绑定 CF 用户
+    mycf : 查询自己 CF 信息
+    cf [uid]: 查询指定用户cf简略信息
+    cf -f [uid] 查询指定用户cf详细信息
 
     **订阅功能:**
     比赛订阅(订阅比赛) [比赛id] : 订阅比赛提醒
@@ -30,8 +30,8 @@ __plugin_meta__ = PluginMetadata(
 
     **示例:**
     近期比赛 162 10 : 查询洛谷平台10天内的比赛
-    洛谷信息 123456 : 查询洛谷用户信息
-    cf信息 tourist : 查询 tourist 的 CF 信息
+    lg 123456 : 查询洛谷用户信息
+    cf -f tourist : 查询 tourist 的 CF 完整信息
 
     **常用ID对应:**
     CodeForces -> 1

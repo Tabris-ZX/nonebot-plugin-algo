@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-algo"
-version = "0.3.1"
+version = "0.3.2"
 description = "NoneBot2 插件：算法比赛助手,支持 OJ 比赛与题目查询,订阅提醒,洛谷与 Codeforces 用户信息查询"
 authors = [
     { name = "Tabris-ZX", email = "3146463122@qq.com" },

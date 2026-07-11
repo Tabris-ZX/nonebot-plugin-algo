@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Algo Sample Card</title>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>{{ sample_style }}</style>
 </head>
 <body>
@@ -13,7 +11,7 @@
     {% if logo_src %}<img class="brand" src="{{ logo_src }}" alt="logo" />{% endif %}
 
     {% if avatar %}
-    <img class="portrait" src="{{ avatar }}" alt="avatar" />
+    <img class="portrait" src="{{ avatar }}" alt="" />
     {% else %}
     <div class="portrait" style="display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;">{{ short_name }}</div>
     {% endif %}
@@ -21,8 +19,8 @@
     <section class="hero-panel">
       <div class="name">{{ name }}</div>
       <div class="chips">
-        <div class="chip"><span class="chip-icon">🏆</span> {{ chip_left }}</div>
-        <div class="chip"><span class="chip-icon">⭐</span> {{ chip_right }}</div>
+        <div class="chip"><span class="chip-icon">🏆</span><span class="chip-text">{{ chip_left }}</span></div>
+        <div class="chip"><span class="chip-icon">⭐</span><span class="chip-text">{{ chip_right }}</span></div>
       </div>
     </section>
 
@@ -41,9 +39,6 @@
         {% endfor %}
       </div>
     </section>
-
-    <div class="footer">{{ detail_hint }}</div>
-    <div class="author">{{ footer_signature }}</div>
   </div>
 </body>
 </html>

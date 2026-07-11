@@ -1,11 +1,13 @@
+{{ font_faces|default('') }}
+
 :root {
       --accent: {{ accent|default('#ef4444') }};
       --accent-dark: {{ accent_dark|default('#dc2626') }};
       --accent-soft: {{ accent_soft|default('#f87171') }};
       --text: #fff;
       --shadow: 0 8px 16px rgba(84, 22, 22, 0.30);
-      --font-display: 'Baloo 2', 'Baloo2-SemiBold', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-      --font-mono: 'Baloo 2', 'Baloo2-SemiBold', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --font-display: 'Baloo 2', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --font-mono: 'Baloo 2', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -86,8 +88,8 @@
     .chips {
       width: 100%;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
       margin-top: 24px;
     }
 
@@ -99,9 +101,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 7px;
       padding: 0 12px;
-      font-size: 24px;
+      min-width: 0;
+      font-size: 21px;
       font-weight: 900;
       white-space: nowrap;
       overflow: hidden;
@@ -110,10 +113,18 @@
 
     .chip-icon {
       display: inline-block;
+      flex: 0 0 auto;
       font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
       font-size: 25px;
       line-height: 1;
       filter: drop-shadow(0 2px 3px rgba(0,0,0,0.18));
+    }
+
+    .chip-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .metric-panel {
@@ -197,31 +208,4 @@
       line-height: 1;
       font-weight: 1000;
       text-shadow: 0 3px 6px rgba(0,0,0,0.14);
-    }
-
-    .footer {
-      position: absolute;
-      left: 22px;
-      bottom: 5px;
-      font-family: var(--font-mono);
-      font-size: 18px;
-      font-weight: 800;
-      color: rgba(255,255,255,0.92);
-      max-width: 340px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .author {
-      position: absolute;
-      right: 22px;
-      bottom: 5px;
-      font-size: 17px;
-      font-weight: 900;
-      color: rgba(255,255,255,0.92);
-      text-shadow: 0 2px 4px rgba(0,0,0,0.18);
-      max-width: 220px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }

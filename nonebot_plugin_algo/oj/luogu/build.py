@@ -10,6 +10,7 @@ from pathlib import Path
 from collections import Counter
 import html
 from datetime import datetime
+from uuid import uuid4
 ASSETS_PATH = Path(__file__).resolve().parents[2] / "assets"
 TEMPLATE_PATH = ASSETS_PATH / "template" / "lougu_card.html"
 SAMPLE_TEMPLATE_PATH = ASSETS_PATH / "template" / "sample_card.html"
@@ -17,6 +18,7 @@ FULL_STYLE_PATH = ASSETS_PATH / "template" / "full-style.css"
 SAMPLE_STYLE_PATH = ASSETS_PATH / "template" / "sample-style.css"
 LOGO_PATH = ASSETS_PATH / "luogu.webp"
 BACKGROUND_DIR = ASSETS_PATH / "background"
+FONT_DIR = ASSETS_PATH / "fonts"
 cards_save_path = luogu_save_path / "cards"
 
 DEFAULT_WIDTH = 1440
@@ -24,29 +26,14 @@ DEFAULT_HEIGHT = 900
 
 class Luogu(LuoguAPI):
     @classmethod
-    async def build_bind_user_info(cls, user_qq: str)-> tuple[Path, Path] | None:
+    async def build_bind_user_info(cls, user_qq: str, full: bool = False)-> Path | None:
         user_id = cls.get_bound_user(user_qq)
         if user_id is None:
             return None
-        return await cls.build_user_info(user_id)
+        return await cls.build_user_info(user_id, full=full)
 
     @classmethod
-    def check_card_exists(cls, user: str) -> Path | None:
-        """检查洛谷卡片是否存在"""
-        img_path = cards_save_path / f"{user}.png"
-        if img_path.exists():
-            return img_path
-        return None
-
-    @classmethod
-    def check_sample_card_exists(cls, user: str) -> Path | None:
-        img_path = cards_save_path / f"{user}_sample.png"
-        if img_path.exists():
-            return img_path
-        return None
-
-    @classmethod
-    async def build_user_info(cls, user: str|int)-> tuple[Path, Path] | None:
+    async def build_user_info(cls, user: str|int, full: bool = False)-> Path | None:
         info = await cls.get_user_info(user)
         if not info:
             return None
@@ -60,41 +47,51 @@ class Luogu(LuoguAPI):
         # 渲染模板
         context = cls._build_user_card_context(info)
         try:
-            with open(TEMPLATE_PATH, encoding="utf-8") as f:
-                template = Template(f.read())
-            with open(SAMPLE_TEMPLATE_PATH, encoding="utf-8") as f:
-                sample_template = Template(f.read())
+            if full:
+                with open(TEMPLATE_PATH, encoding="utf-8") as f:
+                    template = Template(f.read())
+            else:
+                with open(SAMPLE_TEMPLATE_PATH, encoding="utf-8") as f:
+                    template = Template(f.read())
             background = context["background"] or cls._random_background_uri()
             # 预构建彩色名称
+            avatar = await cls._remote_image_data_uri(context["avatar"])
             context = {
                 **context,
                 "background": background,
                 "logo_src": cls._image_data_uri(LOGO_PATH),
-                "avatar": await cls._remote_image_data_uri(context["avatar"]),
+                "avatar": avatar,
+                "font_faces": cls._font_faces(),
                 "name_styled": f"<span style='color:{context['name_color']}'>{context['name']}</span>",
                 **cls._theme_vars(context["name_color"]),
             }
-            full_context = {
-                **context,
-                "full_style": cls._render_style(FULL_STYLE_PATH, context),
-            }
-            sample_context = cls._build_sample_context(context)
-            sample_context = {
-                **sample_context,
-                "sample_style": cls._render_style(SAMPLE_STYLE_PATH, sample_context),
-            }
-            html_rendered = template.render(**full_context)
-            sample_rendered = sample_template.render(**sample_context)
+            if full:
+                render_context = {
+                    **context,
+                    "full_style": cls._render_style(FULL_STYLE_PATH, context),
+                }
+                html_rendered = template.render(**render_context)
+                output, width, height = img_output, DEFAULT_WIDTH, DEFAULT_HEIGHT
+            else:
+                render_context = {
+                    **cls._build_sample_context(context),
+                    "font_faces": context["font_faces"],
+                }
+                render_context = {
+                    **render_context,
+                    "sample_style": cls._render_style(SAMPLE_STYLE_PATH, render_context),
+                }
+                html_rendered = template.render(**render_context)
+                output, width, height = sample_output, 600, 800
         except Exception as e:
             logger.error(f"读取模板失败: {e}，改用内置模板渲染")
             return None
         
         # 仅使用 Playwright 渲染
         # 初次按动态高度渲染（让页面自适应内容），再截图整个页面
-        ok = await cls.html_to_pic(html_rendered, img_output, DEFAULT_WIDTH, DEFAULT_HEIGHT)
-        sample_ok = await cls.html_to_pic(sample_rendered, sample_output, 600, 800)
-        if ok and sample_ok:
-            return img_output, sample_output
+        ok = await cls.html_to_pic(html_rendered, output, width, height)
+        if ok:
+            return output
         logger.error("Playwright 截图失败，未生成卡片")
         return None
 
@@ -107,6 +104,30 @@ class Luogu(LuoguAPI):
             return ""
 
     @staticmethod
+    def _font_url(path: Path) -> str:
+        return path.resolve().as_uri()
+
+    @staticmethod
+    def _font_data_uri(path: Path) -> str:
+        return "data:font/ttf;base64," + base64.b64encode(path.read_bytes()).decode(
+            "ascii"
+        )
+
+    @classmethod
+    def _font_faces(cls) -> str:
+        return (
+            "@font-face{font-family:'Baloo 2';src:url('"
+            f"{cls._font_data_uri(FONT_DIR / 'Baloo2-Regular.ttf')}"
+            "') format('truetype');font-weight:400 800;font-style:normal;font-display:block;}"
+            "@font-face{font-family:'Noto Sans CJK SC';src:url('"
+            f"{cls._font_url(FONT_DIR / 'NotoSansSC-Regular.ttf')}"
+            "') format('truetype');font-weight:400;font-style:normal;font-display:block;}"
+            "@font-face{font-family:'Noto Sans CJK SC';src:url('"
+            f"{cls._font_url(FONT_DIR / 'NotoSansSC-Bold.ttf')}"
+            "') format('truetype');font-weight:700;font-style:normal;font-display:block;}"
+        )
+
+    @staticmethod
     async def _remote_image_data_uri(url: str) -> str:
         if not url:
             return ""
@@ -116,7 +137,7 @@ class Luogu(LuoguAPI):
                 response = await client.get(url)
             response.raise_for_status()
         except httpx.HTTPError as e:
-            logger.warning(f"读取远程头像失败: {url} ({e})")
+            logger.warning(f"读取远程头像失败: {url} ({type(e).__name__}: {e!r})")
             return url
         content_type = response.headers.get("content-type", "image/png").split(";")[0]
         return f"data:{content_type};base64," + base64.b64encode(response.content).decode("ascii")
@@ -168,16 +189,26 @@ class Luogu(LuoguAPI):
     @staticmethod
     async def html_to_pic(html: str, out_path: Path, width: int, height: int | None) -> bool:
         try:
-            from playwright.async_api import async_playwright
+            from playwright.async_api import TimeoutError as PlaywrightTimeoutError, async_playwright
         except Exception as e:
             logger.warning(f"未安装 Playwright：{e}")
             return False
+        html_path = out_path.with_name(f".{out_path.stem}-{uuid4().hex}.html")
         try:
+            # set_content() 的页面地址是 about:blank，会被 Chromium 拒绝加载
+            # file:// 字体。通过同目录临时 HTML 文件导航，字体与页面保持同源。
+            html_path.write_text(html, encoding="utf-8")
             async with async_playwright() as pw:
                 browser = await pw.chromium.launch()
                 context = await browser.new_context(viewport={"width": int(width), "height": int(height or 1)}, device_scale_factor=2)
                 page = await context.new_page()
-                await page.set_content(html, wait_until="networkidle")
+                await page.goto(html_path.as_uri(), wait_until="domcontentloaded")
+                try:
+                    await page.wait_for_load_state("load", timeout=3000)
+                except PlaywrightTimeoutError:
+                    pass
+                await page.evaluate("document.fonts ? document.fonts.ready : Promise.resolve()")
+                await page.wait_for_timeout(120)
                 # 若未指定高度，则截图整页
                 if height is None:
                     await page.screenshot(path=str(out_path), full_page=True, type="png")
@@ -189,6 +220,8 @@ class Luogu(LuoguAPI):
         except Exception as e:
             logger.error(f"Playwright 截图失败: {e}")
             return False
+        finally:
+            html_path.unlink(missing_ok=True)
 
 
     @classmethod
@@ -324,8 +357,6 @@ class Luogu(LuoguAPI):
                 {"key": "contests", "value": display(context["contest_count"])},
                 {"key": "registered", "value": display(context["registration_str"])},
             ],
-            "detail_hint": f"/lg -f {context['name']} 查看完整信息",
-            "footer_signature": f"{datetime.now().strftime('%m-%d %H:%M')}@Tabris-ZX",
         }
 
     @staticmethod

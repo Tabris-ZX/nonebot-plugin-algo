@@ -9,6 +9,7 @@ from .api import CodeforcesAPI, CodeforcesRateLimitError, RATE_LIMIT_MESSAGE
 from pathlib import Path
 import html
 from datetime import datetime, date, timedelta
+from uuid import uuid4
 
 ASSETS_PATH = Path(__file__).resolve().parents[2] / "assets"
 TEMPLATE_PATH = ASSETS_PATH / "template" / "cf_card.html"
@@ -17,6 +18,7 @@ FULL_STYLE_PATH = ASSETS_PATH / "template" / "full-style.css"
 SAMPLE_STYLE_PATH = ASSETS_PATH / "template" / "sample-style.css"
 LOGO_PATH = ASSETS_PATH / "cf.webp"
 BACKGROUND_DIR = ASSETS_PATH / "background"
+FONT_DIR = ASSETS_PATH / "fonts"
 cards_save_path = cf_save_path / "cards"
 
 DEFAULT_WIDTH = 1440
@@ -25,33 +27,18 @@ DEFAULT_HEIGHT = 900
 
 class Codeforces(CodeforcesAPI):
     @classmethod
-    async def build_bind_user_info(cls, user_qq: str) -> tuple[Path, Path] | str | None:
+    async def build_bind_user_info(cls, user_qq: str, full: bool = False) -> Path | str | None:
         """根据绑定的 QQ 号构建用户卡片"""
         handle = cls.get_bound_handle(user_qq)
         if handle is None:
             return None
-        return await cls.build_user_info(handle)
+        return await cls.build_user_info(handle, full=full)
 
     @classmethod
-    def check_card_exists(cls, handle: str) -> Path | None:
-        """检查 CF 卡片是否存在"""
-        img_path = cards_save_path / f"{handle}.png"
-        if img_path.exists():
-            return img_path
-        return None
-
-    @classmethod
-    def check_sample_card_exists(cls, handle: str) -> Path | None:
-        img_path = cards_save_path / f"{handle}_sample.png"
-        if img_path.exists():
-            return img_path
-        return None
-
-    @classmethod
-    async def build_user_info(cls, handle: str) -> tuple[Path, Path] | str | None:
+    async def build_user_info(cls, handle: str, full: bool = False) -> Path | str | None:
         """构建 CF 用户信息卡片"""
         try:
-            info = await cls.get_user_info(handle)
+            info = await cls.get_user_info(handle, include_submissions=True)
         except CodeforcesRateLimitError:
             return RATE_LIMIT_MESSAGE
         if not info:
@@ -62,10 +49,12 @@ class Codeforces(CodeforcesAPI):
 
         context = cls._build_user_card_context(info)
         try:
-            with open(TEMPLATE_PATH, encoding="utf-8") as f:
-                template = Template(f.read())
-            with open(SAMPLE_TEMPLATE_PATH, encoding="utf-8") as f:
-                sample_template = Template(f.read())
+            if full:
+                with open(TEMPLATE_PATH, encoding="utf-8") as f:
+                    template = Template(f.read())
+            else:
+                with open(SAMPLE_TEMPLATE_PATH, encoding="utf-8") as f:
+                    template = Template(f.read())
             background = cls._random_background_uri()
             handle_safe = html.escape(context["handle"])
             if context["rank"] == "legendary grandmaster" and handle_safe:
@@ -81,27 +70,34 @@ class Codeforces(CodeforcesAPI):
                 "logo_src": cls._image_data_uri(LOGO_PATH),
                 "background": background,
                 "avatar": await cls._remote_image_data_uri(context["avatar"]),
+                "font_faces": cls._font_faces(),
                 **cls._theme_vars(context["rank_color"]),
             }
-            full_context = {
-                **context,
-                "full_style": cls._render_style(FULL_STYLE_PATH, context),
-            }
-            sample_context = cls._build_sample_context(context)
-            sample_context = {
-                **sample_context,
-                "sample_style": cls._render_style(SAMPLE_STYLE_PATH, sample_context),
-            }
-            html_rendered = template.render(**full_context)
-            sample_rendered = sample_template.render(**sample_context)
+            if full:
+                render_context = {
+                    **context,
+                    "full_style": cls._render_style(FULL_STYLE_PATH, context),
+                }
+                html_rendered = template.render(**render_context)
+                output, width, height = img_output, DEFAULT_WIDTH, DEFAULT_HEIGHT
+            else:
+                render_context = {
+                    **cls._build_sample_context(context),
+                    "font_faces": context["font_faces"],
+                }
+                render_context = {
+                    **render_context,
+                    "sample_style": cls._render_style(SAMPLE_STYLE_PATH, render_context),
+                }
+                html_rendered = template.render(**render_context)
+                output, width, height = sample_output, 600, 800
         except Exception as e:
             logger.error(f"读取模板失败: {e}")
             return None
 
-        ok = await cls.html_to_pic(html_rendered, img_output, DEFAULT_WIDTH, DEFAULT_HEIGHT)
-        sample_ok = await cls.html_to_pic(sample_rendered, sample_output, 600, 800)
-        if ok and sample_ok:
-            return img_output, sample_output
+        ok = await cls.html_to_pic(html_rendered, output, width, height)
+        if ok:
+            return output
         logger.error("Playwright 截图失败，未生成卡片")
         return None
 
@@ -112,6 +108,30 @@ class Codeforces(CodeforcesAPI):
         except Exception as e:
             logger.warning(f"读取本地图片失败: {path} ({e})")
             return ""
+
+    @staticmethod
+    def _font_url(path: Path) -> str:
+        return path.resolve().as_uri()
+
+    @staticmethod
+    def _font_data_uri(path: Path) -> str:
+        return "data:font/ttf;base64," + base64.b64encode(path.read_bytes()).decode(
+            "ascii"
+        )
+
+    @classmethod
+    def _font_faces(cls) -> str:
+        return (
+            "@font-face{font-family:'Baloo 2';src:url('"
+            f"{cls._font_data_uri(FONT_DIR / 'Baloo2-Regular.ttf')}"
+            "') format('truetype');font-weight:400 800;font-style:normal;font-display:block;}"
+            "@font-face{font-family:'Noto Sans CJK SC';src:url('"
+            f"{cls._font_url(FONT_DIR / 'NotoSansSC-Regular.ttf')}"
+            "') format('truetype');font-weight:400;font-style:normal;font-display:block;}"
+            "@font-face{font-family:'Noto Sans CJK SC';src:url('"
+            f"{cls._font_url(FONT_DIR / 'NotoSansSC-Bold.ttf')}"
+            "') format('truetype');font-weight:700;font-style:normal;font-display:block;}"
+        )
 
     @staticmethod
     async def _remote_image_data_uri(url: str) -> str:
@@ -176,11 +196,15 @@ class Codeforces(CodeforcesAPI):
     async def html_to_pic(html: str, out_path: Path, width: int, height: int | None) -> bool:
         """将 HTML 渲染为 PNG 图片"""
         try:
-            from playwright.async_api import async_playwright
+            from playwright.async_api import TimeoutError as PlaywrightTimeoutError, async_playwright
         except Exception as e:
             logger.warning(f"未安装 Playwright：{e}")
             return False
+        html_path = out_path.with_name(f".{out_path.stem}-{uuid4().hex}.html")
         try:
+            # set_content() 的页面地址是 about:blank，会被 Chromium 拒绝加载
+            # file:// 字体。通过同目录临时 HTML 文件导航，字体与页面保持同源。
+            html_path.write_text(html, encoding="utf-8")
             async with async_playwright() as pw:
                 browser = await pw.chromium.launch()
                 context = await browser.new_context(
@@ -188,7 +212,13 @@ class Codeforces(CodeforcesAPI):
                     device_scale_factor=2,
                 )
                 page = await context.new_page()
-                await page.set_content(html, wait_until="networkidle")
+                await page.goto(html_path.as_uri(), wait_until="domcontentloaded")
+                try:
+                    await page.wait_for_load_state("load", timeout=3000)
+                except PlaywrightTimeoutError:
+                    pass
+                await page.evaluate("document.fonts ? document.fonts.ready : Promise.resolve()")
+                await page.wait_for_timeout(120)
                 if height is None:
                     await page.screenshot(path=str(out_path), full_page=True, type="png")
                 else:
@@ -203,6 +233,8 @@ class Codeforces(CodeforcesAPI):
         except Exception as e:
             logger.error(f"Playwright 截图失败: {e}")
             return False
+        finally:
+            html_path.unlink(missing_ok=True)
 
     @classmethod
     def _build_user_card_context(cls, data: Dict) -> Dict:
@@ -355,7 +387,8 @@ class Codeforces(CodeforcesAPI):
         # 参赛场次
         contest_count = len(rating_history)
         heatmap_rows, heatmap_months = cls._build_heatmap(data["submissions"])
-        solved_count = cls._count_solved(data["submissions"])
+        submissions = data["submissions"]
+        solved_count = cls._count_solved(submissions) if submissions else "--"
 
         return {
             "handle": handle,
@@ -410,8 +443,6 @@ class Codeforces(CodeforcesAPI):
                 {"key": "contests", "value": context["contest_count"]},
                 {"key": "registered", "value": context["registration_str"] or "--"},
             ],
-            "detail_hint": f"/cf -f {context['handle']} 查看完整信息",
-            "footer_signature": f"{datetime.now().strftime('%m-%d %H:%M')}@Tabris-ZX",
         }
 
     @staticmethod

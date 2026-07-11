@@ -71,33 +71,33 @@ def init_scheduler():
     scheduler.add_job(
         cleanup_cf_cards,
         "cron",
-        hour=3,
+        hour=2,
         minute=0,
-        id="cleanup_cf_cards_3",
-        name="清理CF卡片(3点)",
+        id="cleanup_cf_cards_2",
+        name="清理CF卡片(2点)",
         replace_existing=True,
     )
     scheduler.add_job(
         cleanup_cf_cards,
         "cron",
-        hour=11,
+        hour=10,
         minute=0,
-        id="cleanup_cf_cards_11",
-        name="清理CF卡片(11点)",
+        id="cleanup_cf_cards_10",
+        name="清理CF卡片(10点)",
         replace_existing=True,
     )
     scheduler.add_job(
         cleanup_cf_cards,
         "cron",
-        hour=19,
+        hour=18,
         minute=0,
-        id="cleanup_cf_cards_19",
-        name="清理CF卡片(19点)",
+        id="cleanup_cf_cards_18",
+        name="清理CF卡片(18点)",
         replace_existing=True,
     )
 
     logger.info("洛谷卡片清理定时任务已启动，每天2点、10点、18点执行")
-    logger.info("CF卡片清理定时任务已启动，每天3点、11点、19点执行")
+    logger.info("CF卡片清理定时任务已启动，每天2点、10点、18点执行")
 
 
 # 在模块导入时自动初始化定时任务

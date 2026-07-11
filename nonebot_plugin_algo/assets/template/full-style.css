@@ -1,3 +1,5 @@
+{{ font_faces|default('') }}
+
 :root {
       --primary: #1071d2;
       --primary-dark: #0a5aaa;
@@ -13,8 +15,8 @@
       --radius-sm: 8px;
       --radius-md: 8px;
       --radius-lg: 12px;
-      --font-en: 'Baloo 2', 'Baloo2-SemiBold', sans-serif;
-      --font-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --font-en: 'Baloo 2', sans-serif;
+      --font-cn: 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
       --font-serif: var(--font-en), var(--font-cn);
       --shadow-sm: 0 2px 8px rgba(0,0,0,0.12);
       --shadow-md: 0 6px 20px rgba(0,0,0,0.18);
@@ -453,12 +455,12 @@ body.cf-card{
     }body.cf-card .content-grid{
       width: 100%;
       display: grid;
-      grid-template-columns: 900px 420px;
+      grid-template-columns: minmax(0, 875px) minmax(0, 457px);
       gap: 16px 24px;
     }body.cf-card .col-left, body.cf-card .col-right{
       display: grid; gap: 16px;
       min-height: 0;
-    }body.cf-card .col-left{ grid-template-rows: 250px 394px; }body.cf-card .col-right{ grid-template-rows: 316px 328px; }body.cf-card .panel{
+    }body.cf-card .col-left{ grid-template-rows: 250px 394px; }body.cf-card .col-right{ grid-template-rows: 316px 328px; }body.cf-card .col-right .panel{ padding-left: 18px; padding-right: 18px; }body.cf-card .panel{
       background: var(--surface-glass);
       border: 1px solid var(--border-light);
       border-radius: var(--radius-md);
@@ -529,14 +531,14 @@ body.cf-card{
     }body.cf-card .heatmap-cell.lv-0{ background: rgba(255,255,255,0.12); }body.cf-card .heatmap-cell.lv-1{ background: #9be9a8; }body.cf-card .heatmap-cell.lv-2{ background: #40c463; }body.cf-card .heatmap-cell.lv-3{ background: #30a14e; }body.cf-card .heatmap-cell.lv-4{ background: #216e39; }body.cf-card .heatmap-cell.lv-5{ background: #14532d; }body.cf-card .stats-grid{
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: 112px 54px 54px;
+      grid-template-rows: 120px 56px 56px;
       gap: 8px;
       flex: 1;
     }body.cf-card .stat-cell{
       background: var(--surface-card);
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-sm);
-      padding: 7px 14px;
+      padding: 8px 14px;
       text-shadow: 0 2px 5px rgba(0,0,0,0.46);
       overflow: hidden;
     }body.cf-card .stat-cell .label{
@@ -554,7 +556,7 @@ body.cf-card{
       line-height: 1.2;
       color: var(--text-primary);
       font-family: var(--font-serif);
-      max-width: 13em;
+      max-width: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

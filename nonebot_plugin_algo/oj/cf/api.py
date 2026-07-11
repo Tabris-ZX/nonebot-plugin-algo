@@ -2,7 +2,6 @@ import json
 import asyncio
 from pathlib import Path
 from typing import Dict
-from time import monotonic
 
 import httpx
 from nonebot.log import logger
@@ -23,7 +22,6 @@ class CodeforcesAPI:
     }
     base_url = "https://codeforces.com/api"
     _request_lock = asyncio.Lock()
-    _last_request_at = 0.0
 
     @classmethod
     async def request(cls, url: str, params: dict = None) -> Dict | None:
@@ -31,13 +29,9 @@ class CodeforcesAPI:
         for attempt in range(1, 4):
             try:
                 async with cls._request_lock:
-                    wait = 2.0 - (monotonic() - cls._last_request_at)
-                    if wait > 0:
-                        await asyncio.sleep(wait)
                     timeout = httpx.Timeout(15.0)
                     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
                         response = await client.get(url, params=params)
-                    cls._last_request_at = monotonic()
 
                 response.raise_for_status()
                 data = response.json()
@@ -70,7 +64,7 @@ class CodeforcesAPI:
         return "limit" in text or "too many" in text or "frequent" in text
 
     @classmethod
-    async def get_user_info(cls, handle: str) -> Dict | None:
+    async def get_user_info(cls, handle: str, include_submissions: bool = True) -> Dict | None:
         url = cls.base_url + "/user.info"
         result = await cls.request(url, {"handles": handle})
         if not result or not isinstance(result, list) or len(result) == 0:
@@ -80,11 +74,14 @@ class CodeforcesAPI:
         rating_result = await cls.request(cls.base_url + "/user.rating", {"handle": handle})
         user_data["ratingHistory"] = rating_result if isinstance(rating_result, list) else []
 
-        status_result = await cls.request(
-            cls.base_url + "/user.status",
-            {"handle": handle, "from": 1, "count": 10000},
-        )
-        user_data["submissions"] = status_result if isinstance(status_result, list) else []
+        if include_submissions:
+            status_result = await cls.request(
+                cls.base_url + "/user.status",
+                {"handle": handle, "from": 1, "count": 10000},
+            )
+            user_data["submissions"] = status_result if isinstance(status_result, list) else []
+        else:
+            user_data["submissions"] = []
         return user_data
 
     @classmethod
